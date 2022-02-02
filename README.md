@@ -2,16 +2,6 @@
 scPrisma is a workflow based on projection over theoretic covariance spectrum for pseudotime reconstruction, informative genes inference and signals filtering and enhancement. 
 
 <br />
-<p align="center">
-
-  <h3 align="center">scPrisma</h3>
-
-  <p>
-scPrisma is a workflow based on projection over theoretic covariance spectrum for pseudotime reconstruction, informative genes inference and signals filtering and enhancement. 
-    <br />
-  </p>
-</p>
-
 
 
 <!-- TABLE OF CONTENTS -->
