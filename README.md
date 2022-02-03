@@ -29,12 +29,13 @@ scPrisma is a workflow based on projection over theoretic covariance spectrum fo
 ## Getting Started
 
 ```sh
-git clone https://github.com/nitzanlab/scPrisma/
+git clone https://github.com/nitzanlab/scPrisma.git
 cd scPrisma
+pip install .
 ```
 
 ## Filtering workflow
-
+For filtering we need to first 
 ```sh
 python ....
 ```
