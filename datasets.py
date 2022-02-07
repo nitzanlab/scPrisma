@@ -572,9 +572,9 @@ def draw_gene_ct(adata,gene,n_obs,title):
 
 
 def all_plots_liver(adata,title):
-    #avg_groups = calculate_avg_groups_layer(adata)
-    #visualize_distances(avg_groups,title="Distance between layers- " +  title)
-    #avg_groups = calculate_avg_groups(adata, num_groups=4, groups_length=n_obs)
+    avg_groups = calculate_avg_groups_layer(adata)
+    visualize_distances(avg_groups,title="Distance between layers- " +  title)
+    #avg_groups = calculate_avg_groups_crit(adata,crit_list=[0,6,12,18],criter='ZT')#calculate_avg_groups(adata, num_groups=4)
     #visualize_distances(avg_groups,title="Distance between time points- " + title)
     #print("Norm before all: " +str(np.sum(adata.X)))
     #print("Rhythmic score before all : " + str(genes_score(adata, "cr/r_genes_2.csv")))
@@ -738,7 +738,10 @@ def read_liver_data_full():
     adata5 = read_cr_single_file_layer_full("cr/GSM4308349_UMI_tab_ZT12B.txt", layer_path="cr/ZT12B_reco.txt", ZT="12")
     adata5.var_names_make_unique()
     adata5.obs_names_make_unique()
-    adata4=adata4.concatenate(adata5)
+    adata50 = read_cr_single_file_layer_full("cr/GSM4308350_UMI_tab_ZT12C.txt", layer_path="cr/ZT12C_reco.txt", ZT="12")
+    adata50.var_names_make_unique()
+    adata50.obs_names_make_unique()
+    adata4=adata4.concatenate(adata5,adata50)
     adata6 = read_cr_single_file_layer_full("cr/GSM4308351_UMI_tab_ZT18A.txt", layer_path="cr/ZT18A_reco.txt", ZT="18")
     adata6.var_names_make_unique()
     adata6.obs_names_make_unique()
@@ -896,6 +899,11 @@ def calculate_avg_groups_fe(adata):
         avg_groups[1, :] += tmp_adata[j, :].X[0, :]
     avg_groups[1, :] /= np.linalg.norm(avg_groups[1, :])
     return avg_groups
+
+def read_chlamydomonas_files(n_obs=500):
+    adata_neg = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
+    adata_pos = read_file_ch("Chlamydomonas/GSM4770980_run1_CC5390_Fe_pos.csv",n_obs=n_obs,fe="Positive")
+    return adata_neg , adata_pos
 
 def read_chlamydomonas(n_obs=500):
     adata_neg1 = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
@@ -1216,9 +1224,9 @@ def chlam_genes(adata):
 
     pass
 
-def plot_diurnal_cycle_by_phase(adata_filtered):
+def plot_diurnal_cycle_by_phase(adata, title = ""):
 
-    phase_array = np.zeros((6,adata_filtered.X.shape[0]))
+    phase_array = np.zeros((6,adata.X.shape[0]))
     df = pd.read_csv("Chlamydomonas/ch_genes.csv", header=None)
     new_header = df.iloc[1]
     df = df[2:]
@@ -1233,14 +1241,14 @@ def plot_diurnal_cycle_by_phase(adata_filtered):
             for k in labeled_genes.values:
                 try:
                     gene_string = k[0] + ".v5.5"
-                    a = adata_filtered[:, gene_string].X[0, :]
-                    b = adata_filtered[:, gene_string].X[:, 0]
-                    phase_array[i,:] += adata_filtered[:, gene_string].X[:, 0]
+                    a = adata[:, gene_string].X[0, :]
+                    b = adata[:, gene_string].X[:, 0]
+                    phase_array[i,:] += adata[:, gene_string].X[:, 0]
                 except:
                     print("gene was filtered out")
     for i in range(6):
-        ranged_pca_2d((adata_filtered.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3), title="Phase: " +str(i*4) + " - " +str((i+1)*4))
-    theta = (np.array(range((adata_filtered.X.shape[0]))) * 2 * np.pi) / adata_filtered.X.shape[0]
+        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i+1)*4))
+    theta = (np.array(range((adata.X.shape[0]))) * 2 * np.pi) / adata.X.shape[0]
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     for i in range(6):
         ax.plot(theta, scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
@@ -1249,7 +1257,7 @@ def plot_diurnal_cycle_by_phase(adata_filtered):
     ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
     ax.grid(True)
 
-    ax.set_title("Normalized sum of genes related different phases", va='bottom')
+    ax.set_title("Normalized sum of genes related different phases- " + title, va='bottom')
     ax.legend(range(6))
     #ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"])
     plt.show()

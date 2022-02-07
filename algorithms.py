@@ -285,7 +285,7 @@ def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1):
     D = gradient_ascent_filter_matrix(A, D=np.identity((p))/2, ascent=-1, U=U.T, regu=regu, iterNum=iterNum, lr=lr)
     return D
 
-def filter_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1):
+def filter_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25):
     '''
     :param A: gene expression matrix
     :param regu: regularization parameter
@@ -297,8 +297,24 @@ def filter_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1):
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
     A = gene_normalization(A)
-    D = gradient_ascent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum)
+    D = gradient_ascent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum,verbosity=verbosity)
     return D
+
+def filter_non_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1, verbosity=25):
+    '''
+    :param A: gene expression matrix
+    :param regu: regularization parameter
+    :param iterNum: iteration number
+    :param lr: learning rate
+    :return: diagonal filtering matrix
+    '''
+    V = cell_normalization(A)
+    p = V.shape[1]
+    U =ge_to_spectral_matrix(V)
+    A = gene_normalization(A)
+    D = gradient_ascent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum , verbosity=verbosity)
+    np.identity(D.shape[1])
+    return (np.identity(D.shape[1]) - D)
 
 def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
     '''
@@ -551,8 +567,6 @@ def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
     :return: filtering matrix
     '''
     A = cell_normalization(A)
-    n = A.shape[0]
-    p = A.shape[1]
     V = ge_to_spectral_matrix(A)
     print("starting filtering")
     F = gradient_descent_full_line(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum,verbosity=verbosity , error=error)
@@ -617,7 +631,7 @@ def gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
     plt.show()
     return F
 
-def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
+def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm='L1'):
     '''
     :param A: gene expression matrix
     :param F: filtering matrix
@@ -635,10 +649,10 @@ def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
     VVT = V.dot(V.T)
     while (j < iterNum):
         if j % 25 == 1:
-            value, grad = fAndG_full_acc(A=A, B=F, V=V, VVT=VVT, alpha=regu)
+            value, grad = fAndG_full_acc(A=A, B=F, V=V, VVT=VVT, alpha=regu, regu_norm=regu_norm)
             print("Iteration number: " + str(j) , "function value: " +str(value) )
         epsilon_t *= 0.995
-        grad = G_full(A=A, B=F, V=V, alpha=regu)
+        grad = G_full(A=A, B=F, V=V, alpha=regu , regu_norm = regu_norm)
         F = F + epsilon_t * (grad +np.random.normal(0,0.01,grad.shape))
         F = F.clip(min=0, max=1)
         j += 1
@@ -647,7 +661,7 @@ def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
     plt.show()
     return F
 
-def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
+def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1'):
     print(A.shape)
     print(F.shape)
     print(V.shape)
@@ -660,7 +674,7 @@ def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
             plt.colorbar()
             plt.show()
         epsilon_t *= 0.995
-        tmp_value, grad = fAndG_full(A=A, B=F, V=V, alpha=regu)
+        tmp_value, grad = fAndG_full(A=A, B=F, V=V, alpha=regu, regu_norm=regu_norm)
         F = F - epsilon_t * grad
         F = F.clip(min=0, max=1)
         j += 1
@@ -671,7 +685,9 @@ def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
 
 
 
-def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04, max_evals = 250, verbosity = float('inf'),error=1e-07):
+def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04,
+                               max_evals = 250,
+                               verbosity = float('inf'),error=1e-07, regu_norm='L1'):
     '''
     :param A:
     :param F:
@@ -686,7 +702,7 @@ def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04, max_evals = 250, verbo
     VVT = V.dot(V.T)
     w = F
     evals = 0
-    loss, grad = fAndG_full_acc(A=A, B=F, V=V,VVT=VVT, alpha=regu)
+    loss, grad = fAndG_full_acc(A=A, B=F, V=V,VVT=VVT, alpha=regu, regu_norm=regu_norm)
     alpha = 1 / np.linalg.norm(grad)
     #alpha=0.1
     prev_w = np.zeros(w.shape)
@@ -699,12 +715,14 @@ def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04, max_evals = 250, verbo
         gTg = gTg*gTg
         new_w = w - alpha * grad
         new_w = new_w.clip(min=0, max=1)
-        new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V, VVT=VVT,alpha=regu)
+        new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V,
+                                            VVT=VVT,alpha=regu, regu_norm=regu_norm)
         while new_loss > loss - gamma * alpha * gTg:
             alpha = ((alpha ** 2) * gTg) / (2 * (new_loss + alpha * gTg - loss))
             new_w = w - alpha * grad
             new_w = new_w.clip(min=0, max=1)
-            new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V,VVT=VVT, alpha=regu)
+            new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V,VVT=VVT,
+                                                alpha=regu, regu_norm=regu_norm)
         alpha = min(1, 2 * (loss - new_loss) / gTg)
         loss = new_loss
         grad = new_grad
@@ -773,7 +791,7 @@ def gradient_descent_full_line_boosted(A,V,regu, gamma = 1e-04, max_evals = 250,
         w = new_w
     return w
 
-def fAndG_full(A, B, V, alpha):
+def fAndG_full(A, B, V, alpha, regu_norm='L2'):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
@@ -801,19 +819,27 @@ def fAndG_full(A, B, V, alpha):
         assert dim == (1,)
     assert A_rows == V_rows == B_rows
     assert A_cols == B_cols
-    T_0 = (A * B)
-    t_1 = np.linalg.norm(B, 1)
-    functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
-    gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha ) * np.sign(B)))
+    if regu_norm=='L1':
+        T_0 = (A * B)
+        t_1 = np.linalg.norm(B, 1)
+        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
+        gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha ) * np.sign(B)))
+    else:
+        T_0 = (A * B)
+        t_1 = np.linalg.norm(A * B, 'fro')
+        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
+        gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A))- ((alpha / t_1) * B))
     return functionValue, gradient
 
-def fAndG_full_acc(A, B, V, VVT, alpha):
+
+def fAndG_full_acc(A, B, V, VVT, alpha,regu_norm):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
     :param V: spectral matrix
-    : param VVT: V.dot(V.T)
+    :param VVT: V.dot(V.T)
     :param alpha: correlation between neighbors
+    :param regu_norm: regularization norm (L1/L2)
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
     assert isinstance(A, np.ndarray)
@@ -836,13 +862,19 @@ def fAndG_full_acc(A, B, V, VVT, alpha):
         assert dim == (1,)
     assert A_rows == V_rows == B_rows
     assert A_cols == B_cols
-    T_0 = (A * B)
-    t_1 = np.linalg.norm(B, 1)
-    functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
-    gradient = ((2 * ((VVT).dot(T_0) * A)) - ((alpha ) * np.sign(B)))
+    if regu_norm=='L1':
+        T_0 = (A * B)
+        t_1 = np.linalg.norm(B, 1)
+        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
+        gradient = ((2 * ((VVT).dot(T_0) * A)) - ((alpha ) * np.sign(B)))
+    else:
+        T_0 = (A * B)
+        t_1 = np.linalg.norm(A * B, 'fro')
+        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * t_1))
+        gradient = ((2 * ((VVT).dot(T_0) * A)) - ((alpha / t_1) * B))
     return functionValue, gradient
 
-def G_full(A, B, V, alpha):
+def G_full(A, B, V, alpha, regu_norm='L1'):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
@@ -870,8 +902,12 @@ def G_full(A, B, V, alpha):
         assert dim == (1,)
     assert A_rows == V_rows == B_rows
     assert A_cols == B_cols
-    T_0 = (A * B)
-    gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha ) * np.sign(B)))
+    if regu_norm=='L1':
+        T_0 = (A * B)
+        gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha) * np.sign(B)))
+    else:
+        T_0 = (A * B)
+        gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - (alpha) * 2*B)
     return gradient
 
 
@@ -906,30 +942,34 @@ def filter_non_cyclic_genes_vector(A, alpha=0.99, regu=2, iterNum=500):
     return D
 
 
-def filter_linear_full(A, method, regu=0.1, iterNum=300):
+def filter_linear_full(A, method, regu=0.1, iterNum=300 , lr=0.1, regu_norm='L2'):
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
     eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
                                        normalize_vectors=True)
     F = gradient_descent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
-                             iterNum=iterNum, epsilon=0.2)
+                             iterNum=iterNum, epsilon=lr, regu_norm=regu_norm)
     return F
 
-def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
+def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 ,
+                     error=10e-7, optimized_alpha=True, regu_norm='L2'):
     ''' Filtering of linear signal
     :param A: Gene expression matrix (reordered according to linear ordering)
     :param regu: regularization coefficient
-    :param iterNum: iteration number
+    :param iterNumenhance_linear_full: iteration number
     :return: filtering matrix
     '''
 
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
-    alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
+    alpha = get_alpha(ngenes=A.shape[1], optimized_alpha=optimized_alpha, eigenvals=real_eigenvalues)
+    print(alpha)
     eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
                                        normalize_vectors=True)
-    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors, regu=regu, max_evals=iterNum,verbosity=verbosity , error=error)
+    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors,
+                                   regu=regu, max_evals=iterNum,verbosity=verbosity ,
+                                   error=error , regu_norm=regu_norm)
     return F
 
 def enhance_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):

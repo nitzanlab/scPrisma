@@ -364,32 +364,49 @@ def plot_gene_list(adata, gene_list, color1='black', color2='r', title=''):
 
 
 def plt_mean_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", color='b'):
-    ct_list = ['00', '06', '12', '18']
-    e_array = np.zeros(6)
+    print(1111)
+    ct_list = ['0', '6', '12', '18']
+    e_array = np.zeros(4)
     for i, ct in enumerate(ct_list):
-        adata_nr = (adata[adata.obs['CT'].isin([ct])])
+        adata_nr = (adata[adata.obs['ZT'].isin([ct])])
         e_array[i] = float(np.mean(adata_nr[:, gene].X))
     plt.figure()
     plt.subplot(211)
     plt.plot(ct_list, e_array, 'k')
     plt.plot(ct_list, e_array, 'bo', color=color)  # ct_list, dbp_array, 'k')
     plt.ylim([down_lim, up_lim])
-    plt.title("Mean "+ gene + " expression on raw " + title + " as a function of time")
+    plt.title("Mean " + gene + " expression on raw " + title + " as a function of time")
     plt.ylabel("Gene expression")
     plt.xlabel("Circadian time")
     plt.show()
-    layer_list = ['0', '1', '2', '3','4','5','6','7']
+    layer_list = ['0', '1', '2', '3', '4', '5', '6', '7']
+    layer_list = range(8)
     e_array = np.zeros(8)
     for i, layer in enumerate(layer_list):
         adata_nr = (adata[adata.obs['layer'].isin([layer])])
+
         e_array[i] = float(np.mean(adata_nr[:, gene].X))
     plt.figure()
     plt.subplot(211)
-    plt.plot(ct_list, e_array, 'k')
-    plt.plot(ct_list, e_array, 'bo', color=color)  # ct_list, dbp_array, 'k')
+    plt.plot(layer_list, e_array, 'k')
+    plt.plot(layer_list, e_array, 'bo', color=color)  # ct_list, dbp_array, 'k')
     plt.ylim([down_lim, up_lim])
-    plt.title("Mean "+ gene + " expression on " + title + " as a function of layer")
+    plt.title("Mean " + gene + " expression on " + title + " as a function of layer")
     plt.ylabel("Gene expression")
     plt.xlabel("Layer")
     plt.show()
+    sc.tl.pca(adata)
+    sc.pl.pca_scatter(adata, color=gene, title=("PCA of " + title + " painted by " + str(gene)))
+
+    pass
+
+def plots_liver(adata,title):
+    sc.tl.pca(adata)
+    sc.pl.pca_scatter(adata, color='layer' , title=("PCA of " + title + " painted by layer"))
+    sc.pl.pca_scatter(adata, color='ZT' , title=("PCA of " + title + " painted by ZT"))
+    #gene_list_z = ['glul', 'ass1', 'asl', 'cyp2f2', 'cyp1a2', 'pck1', 'cyp2e1', 'cdh2', 'cdh1', 'cyp7a1', 'acly', 'alb', 'oat', 'aldob', 'cps1']
+    #gene_list_r = [ 'clock', 'npas2', 'nr1d1', 'nr1d2', 'per1', 'per2', 'cry1', 'cry2', 'dbp', 'tef', 'hlf', 'elovl3', 'rora' ,'rorc']
+    #gene_list = ['']
+    #sc.pl.pca_scatter(adata, color=i, title=("PCA of " + title + " painted by " + i))
+
     pass

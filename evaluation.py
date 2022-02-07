@@ -7,7 +7,8 @@ import numpy as np
 import circle_fit as cf
 import numpy as np
 from sklearn.datasets import make_circles
-
+from scipy import stats
+from datasets import *
 
 def genes_score(data,path):
     '''
@@ -115,3 +116,27 @@ def mds_score_tsne(data):
         if dist>max_dist:
             max_dist = dist
     return max_dist-min_dist
+
+
+def sort_data_linear_2(adata):
+    perm = np.random.permutation(range(adata.X.shape[0]))
+    adata = adata[perm,:]
+    layers = [[] for i in range(8)]
+    obs = adata.obs
+    for i, row in obs.iterrows():
+        layer = int(row['layer'])
+        layers[layer].append(i)
+    order = sum(layers, [])
+    sorted_data = adata[order,:]
+    return sorted_data
+
+def corr_rank(adata,gene,direction):
+    adata_sorted = sort_data_linear_2(copy.deepcopy(adata.copy()))
+    layer = adata_sorted.obs['layer']
+    layer = layer.to_numpy()
+    sorted_gene = np.array(adata_sorted[:,gene].X)
+    sorted_gene = sorted_gene[:,0]
+    if direction=='up':
+        return stats.spearmanr(sorted_gene,layer)
+    else:
+        return stats.spearmanr(sorted_gene,np.flip(layer))
