@@ -33,6 +33,16 @@ git clone https://github.com/nitzanlab/scPrisma.git
 cd scPrisma
 pip install .
 ```
+## Pre-processing
+It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
+```
+adata = sc.read(path)
+sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
+sc.pp.log1p(adata)
+
+```
+## Reconstruction
+Before 
 
 ## Filtering workflow
 For filtering we need to first 
