@@ -39,10 +39,18 @@ It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/inde
 adata = sc.read(path)
 sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
 sc.pp.log1p(adata)
+```
+
+## Reconstruction
+The first step in this workflow is reconstruct the signal, this can be done using the reconstriction algorithm:
 
 ```
-## Reconstruction
-Before 
+E , E_rec = reconstruction_cyclic(adata.X)
+order = E_to_range(E_rec)
+adata = adata[order,:]
+```
+'reconstruction_cyclic' function 
+
 
 ## Filtering workflow
 For filtering we need to first 
