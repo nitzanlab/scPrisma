@@ -76,9 +76,13 @@ adata.X = adata.X * F
 After reconstruction was applied, we can use the enhancement algorithm. This algorithm filters out the expression profiles that <b><u>are not</u></b> related to the reconstructed topology.
 It is recomended to use the informative genes infereence algorithm before using the enhancement algorithm. Running the genes inference algorithm, prevents overfitting of genes that do not related to desired topology.
 ```
-D
+D = filter_cyclic_genes_line(adata.X, regu=0)
+D = np.identify(D.shape[0)-D
+adata.X = (adata.X.)dot(D)
 ```
-'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b><u>less</u></b> information would be filter out.
+'regu' is the regularization parameter, it is recomended that this parameter would be between -0.1 and 0.5. As long as we increase this parameter the algorithm would filter out <b><u>less</u></b> genes. But, we will retain the genes that the algorithm would not filter, so as long as we increase this parameter,<b><u>more</u></b> genes will be filtered out.
+
+
 
 ```sh
 python ...
