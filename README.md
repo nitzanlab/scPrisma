@@ -50,7 +50,19 @@ E , E_rec = reconstruction_cyclic(adata.X)
 order = E_to_range(E_rec)
 adata = adata[order,:]
 ```
-'reconstruction_cyclic' function recives
+'reconstruction_cyclic' function receives as an input the gene expression matrix (and parameters that can be seen in 'algorithms.py') and returns 'E' which is a doubly stochastic matrix and 'E_rec' which is the desired permutation matrix.
+'E_to_range' turns the permutation matrix into a permutation array.
+
+If low-resolution pseudotime ordering exists (as prior knowledge) it can be used instead of applying the reconstruction algorithm:
+```
+adata = sort_data_crit(adata=adata ,crit=crit,crit_list=crit_list)
+```
+
+Each cell should have a label of his place stored as 'obs'. 'crit' is the desired label,  'crit_list' is the desired order.
+For example: for sorting a gene expression that was sampled at four different timepoints (0,6,12,18). The sampling time can be stored as 'ZT' (adata.obs['ZT'] = X). and applied the following function:
+```
+adata = sort_data_crit(adata=adata ,crit='ZT',crit_list=['0','6','12','18'])
+```
 
 
 ## Filtering workflow
