@@ -10,6 +10,7 @@ scPrisma is a workflow based on projection over theoretic covariance spectrum fo
 * [About the Project](#about-the-project)
   * [Built With](#built-with)
 * [Getting Started](#getting-started)
+  * [Reconstruction](#reconstruction)
   * [Filtering workflow](#filtering-workflow)
   * [Enhancement workflow](#enhancement-workflow)
 * [Contact](#contact)
