@@ -71,8 +71,15 @@ After reconstruction was applied, we can use the filtering algorithm. This algor
 F = filtering_cyclic(adata.X, regu=0 )
 adata.X = adata.X * F
 ```
-'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b>less</b> information would be filter out.
+'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b><u>less</u></b> information would be filter out. Since it is a convex optimization problem, it is solved using backtracking line search gradient descent.
 ## Enhancement workflow
+After reconstruction was applied, we can use the enhancement algorithm. This algorithm filters out the expression profiles that <b><u>are not</u></b> related to the reconstructed topology.
+It is recomended to use the informative genes infereence algorithm before using the enhancement algorithm. Running the genes inference algorithm, prevents overfitting of genes that do not related to desired topology.
+```
+D
+```
+'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b><u>less</u></b> information would be filter out.
+
 ```sh
 python ...
 ```
