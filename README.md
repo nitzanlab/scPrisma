@@ -40,7 +40,7 @@ adata = sc.read(path)
 sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
 sc.pp.log1p(adata)
 ```
-
+'adata' should be AnnData object, where the observations (rows) are cells and the variables (columns) are genes. 
 ## Reconstruction
 The first step in this workflow is reconstruct the signal, this can be done using the reconstriction algorithm:
 
@@ -49,7 +49,7 @@ E , E_rec = reconstruction_cyclic(adata.X)
 order = E_to_range(E_rec)
 adata = adata[order,:]
 ```
-'reconstruction_cyclic' function 
+'reconstruction_cyclic' function recives
 
 
 ## Filtering workflow
