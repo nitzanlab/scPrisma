@@ -66,10 +66,12 @@ adata = sort_data_crit(adata=adata ,crit='ZT',crit_list=['0','6','12','18'])
 
 
 ## Filtering workflow
-For filtering we need to first 
-```sh
-python ....
+After reconstruction was applied, we can use the filtering algorithm. This algorithm filters out the expression profiles that are related to the reconstructed topology.
 ```
+F = filtering_cyclic(adata.X, regu=0 )
+adata.X = adata.X * F
+```
+'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b>less</b> information would be filter out.
 ## Enhancement workflow
 ```sh
 python ...
