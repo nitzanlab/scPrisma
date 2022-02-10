@@ -717,7 +717,7 @@ def read_liver_data_2(n_obs=250):
     adata = adata.concatenate(adata2, adata4, adata6)
     return adata
 
-def read_liver_data_full():
+def read_liver_data_full(n_obs=6000):
     adata = read_cr_single_file_layer_full("cr/GSM4308343_UMI_tab_ZT00A.txt", layer_path="cr/ZT00A_reco.txt", ZT="0")
     adata.var_names_make_unique()
     adata.obs_names_make_unique()
@@ -750,6 +750,7 @@ def read_liver_data_full():
     adata7.obs_names_make_unique()
     adata6=adata6.concatenate(adata7)
     adata = adata.concatenate(adata2, adata4, adata6)
+    sc.pp.subsample(adata, n_obs=n_obs, random_state=0)
     return adata
 
 def liver_full_workflow(n_obs = 250):
@@ -1066,7 +1067,7 @@ def evaluate_single_scn_cluster(adata,cluster,type_genes,r_genes,gene_regu=0,en_
     all_plots_scn(adata_tmp,title= cluster+ " - filtered signal, " )
     pass
 
-def read_all_scn_no_obs_24hours():
+def read_all_scn():
     '''
     :return:
     '''
@@ -1091,7 +1092,7 @@ def read_all_scn_no_obs_24hours():
     adata = adata.concatenate(adata1, adata2,adata3, adata4, adata5)
     return adata
 
-def read_all_scn(n_obs=250):
+def read_all_scn_no_24(n_obs=250):
     adata = read_scn_single_file("SCN/GSM3290582_CT14.csv",  CT="14",
                                       n_obs=n_obs)
     adata1 = read_scn_single_file("SCN/GSM3290583_CT18.csv",  CT="18",
@@ -1216,7 +1217,8 @@ def chlam_genes(adata):
                 gene_string = j[0] + ".v5.5"
                 tmp_hour += adata[:, gene_string].X
             except:
-                print("gene was filtered out")
+                #print("gene was filtered out")
+                a=1
         if i % 8 == 0:
             tmp_hour /= tmp_hour.max()
             ranged_pca_2d(adata.X, color=tmp_hour, title=(str(0.5 * i) + " filtered"))
@@ -1245,67 +1247,30 @@ def plot_diurnal_cycle_by_phase(adata, title = ""):
                     b = adata[:, gene_string].X[:, 0]
                     phase_array[i,:] += adata[:, gene_string].X[:, 0]
                 except:
-                    print("gene was filtered out")
+                    #print("gene was filtered out")
+                    a=1
     for i in range(6):
-        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i+1)*4))
-    theta = (np.array(range((adata.X.shape[0]))) * 2 * np.pi) / adata.X.shape[0]
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    for i in range(6):
-        ax.plot(theta, scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
-    ax.set_rmax(2)
-    ax.set_rticks([0.5, 1])  # Less radial ticks
-    ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
-    ax.grid(True)
+        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=35,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i+1)*4))
+    #theta = (np.array(range((adata.X.shape[0]))) * 2 * np.pi) / adata.X.shape[0]
+    #fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    #for i in range(6):
+    #    ax.plot(theta, scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
+    #ax.set_rmax(2)
+    #ax.set_rticks([0.5, 1])  # Less radial ticks
+    #ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
+    #ax.grid(True)
 
-    ax.set_title("Normalized sum of genes related different phases- " + title, va='bottom')
-    ax.legend(range(6))
+    #ax.set_title("Normalized sum of genes related different phases- " + title, va='bottom')
+    #ax.legend(range(6))
     #ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"])
-    plt.show()
+    #plt.show()
 
-    for i in range(6):
-        plt.plot(range(phase_array.shape[1]),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
-    plt.legend(range(6))
-    plt.show()
+    #for i in range(6):
+    #    plt.plot(range(phase_array.shape[1]),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
+    #plt.legend(range(6))
+    #plt.show()
     pass
 
-def read_chlamydomonas_mix(n_obs=500):
-    adata_mix = read_file_ch("Chlamydomonas/GSM4770981_run1_CC5390_Mix.csv",n_obs=n_obs,fe="Mix")
-    sc.pp.filter_cells(adata_mix, min_genes=100)
-    sc.pp.normalize_per_cell(adata_mix, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata_mix)
-    filter_result = sc.pp.filter_genes_dispersion(
-        adata_mix.X,  n_top_genes=7000, log=False
-    )
-    adata_mix._inplace_subset_var(filter_result.gene_subset)
-    #labels_str = adata_mix.obs["FE"]
-    #labels = np.zeros(adata_unit.X.shape[0])
-    #for j, i in enumerate(labels_str):
-    #    if i=="Negative":
-    #        labels[j]=0
-    #    else:
-    #        labels[j]=1
-    #print("silhoutte score before : " +str(silhouette_score(adata_unit.X,labels)))
-    #avg_group = calculate_avg_groups_fe(adata_unit)
-    #print ("Center distance before: " +str(np.linalg.norm(avg_group[0,:]-avg_group[1,:])))
-    #sc.pp.filter_genes(adata, min_cells=10) #50
-    #sc.pp.filter_cells(adata_neg, min_genes=400)
-    bdata_mix = copy.deepcopy(adata_mix.copy())
-    #sc.pp.filter_cells(adata_pos, min_genes=400)
-    sc.tl.pca(adata_mix)
-    sc.pl.pca(adata_mix,color="FE")
-    sc.tl.tsne(adata_mix)
-    sc.pl.tsne(adata_mix,color="FE")
-    adata_mix , F_mix , order_list_mix = reorder_chlamydomonas(adata_mix , file_name="mix")
-    bdata_mix = adata_mix[order_list_mix,:]
-    bdata_mix.X = bdata_mix.X * F_mix
-
-    #print ("Pos norm change: " +str(np.linalg.norm(bdata_mix.X-bdata_mix.X * F_pos)))
-    #print ("Pos norm before: " +str(np.linalg.norm(bdata_pos.X)))
-    #bdata_pos.X = bdata_pos.X * F_pos
-    #bdata_unit = bdata_neg.concatenate(bdata_pos)
-    #labels_str = bdata_unit.obs["FE"]
-
-    pass
 
 def read_chlamydomonas_file(n_obs=500):
     adata_neg = sc.read("chl_neg_reordered.h5ad")

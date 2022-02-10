@@ -36,7 +36,7 @@ def chl_genes_vectoir(adata,genes_path):
     # Take only the values of the dataframe
     return if_cc
 
-def prepare_data_for_ccremover(adata_neg,adata_pos, genes_path):
+def prepare_data_for_ccremover(adata_neg,adata_pos, genes_path="Chlamydomonas/ch_genes.csv"):
     '''
     Prepare data for reunning ccRemover for removing the diurnal cycle, save data for R
     :param adata_neg: annData of (FE-) chlamydomonas
@@ -44,30 +44,48 @@ def prepare_data_for_ccremover(adata_neg,adata_pos, genes_path):
     :param genes_path: path for gene list file
     '''
     if_cc_neg = chl_genes_vectoir(adata_neg,genes_path)
-    B =np.array(adata_neg.X)
-    B = B.T
+    B_neg =np.array(adata_neg.X)
+    B_neg = B_neg.T
     rpy2.robjects.numpy2ri.activate()
-    nr, nc = B.shape
-    Br = ro.r.matrix(B, nrow=nr, ncol=nc)
-    ro.r.assign("B", Br)
-    ro.r("save(B, file='chl_neg.Rdata')")
+    nr, nc = B_neg.shape
+    Br = ro.r.matrix(B_neg, nrow=nr, ncol=nc)
+    ro.r.assign("B_neg", Br)
+    ro.r("save(B_neg, file='chl_neg.Rdata')")
     if_cc_neg = rpy2.robjects.IntVector(if_cc_neg)
-    ro.r.assign("if_cc", if_cc_neg)
-    ro.r("save(if_cc, file='if_cc_neg.Rdata')")
+    ro.r.assign("if_cc_neg", if_cc_neg)
+    ro.r("save(if_cc_neg, file='if_cc_neg.Rdata')")
 
     if_cc_pos = chl_genes_vectoir(adata_pos,genes_path)
-    B =np.array(adata_pos.X)
-    B = B.T
+    B_pos =np.array(adata_pos.X)
+    B_pos = B_pos.T
     rpy2.robjects.numpy2ri.activate()
-    nr, nc = B.shape
-    Br = ro.r.matrix(B, nrow=nr, ncol=nc)
-    ro.r.assign("B", Br)
-    ro.r("save(B, file='chl_pos.Rdata')")
+    nr, nc = B_pos.shape
+    Br = ro.r.matrix(B_pos, nrow=nr, ncol=nc)
+    ro.r.assign("B_pos", Br)
+    ro.r("save(B_pos, file='chl_pos.Rdata')")
     if_cc_pos = rpy2.robjects.IntVector(if_cc_pos)
-    ro.r.assign("if_cc", if_cc_pos)
-    ro.r("save(if_cc, file='if_cc_pos.Rdata')")
+    ro.r.assign("if_cc_pos", if_cc_pos)
+    ro.r("save(if_cc_pos, file='if_cc_pos.Rdata')")
     pass
 
+
+def read_chl_gene_list (genes_path="Chlamydomonas/ch_genes.csv"):
+    gene_list = []
+    df = pd.read_csv(genes_path, header=None)
+    new_header = df.iloc[1]
+    df = df[2:]
+    df.columns = new_header
+    df = df.dropna()
+
+    for i in range(48):
+        if i % 2 == 0:
+            phase_genes = df.loc[df['phase'] == str(int(0.5 * i))]
+        else:
+            phase_genes = df.loc[df['phase'] == str(0.5 * i)]
+        for j in phase_genes.values:
+            gene_string = j[0] + ".v5.5"
+            gene_list.append(gene_string)
+    return gene_list
 
 
 def seurat_chl(adata_path_pos,adata_path_neg,genes_path="Chlamydomonas/ch_genes.csv"):
