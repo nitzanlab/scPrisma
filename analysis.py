@@ -13,6 +13,14 @@ import scanpy as sc
 from scipy.signal import savgol_filter
 from visualizations import *
 
+def get_perm(n):
+    perm = np.random.permutation(n)
+    E = np.zeros((n,n))
+    for i in range(n):
+        E[i,perm[i]]=1
+    return E , perm
+
+
 def Perm_to_range(E):
     '''
     :param E: Permutation matrix
@@ -456,6 +464,19 @@ def read_cr():
     with open('gene_CCND3.npy', 'wb') as f:
         np.save(f,np.array(gene_CCND3))
     pass
+
+
+def p_of_genes(adata, genes_list):
+    sum_genes = 0
+    sum_all = 0
+    for gene in genes_list:
+        try:
+
+            tmp_sum = np.sum(adata[:, gene].X)
+            sum_genes += tmp_sum
+        except:
+            a = 1
+    return sum_genes / np.sum(adata.X)
 
 
 def corr_vs_noise_snr_bins():

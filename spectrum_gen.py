@@ -171,6 +171,8 @@ def get_theta_lst(ncells):
 
 
 def get_alpha_theoretic(ngenes, nchange):
+    print(ngenes)
+    print(nchange)
     return math.exp((-2 * nchange) / float(ngenes))
 
 
@@ -189,6 +191,7 @@ def get_numeric_eigen_data(ncells, alpha, normalize_vectors=True):
     values = values + values[-2::-1]
     offset = list(range(-ncells, ncells + 1))
     mat = sparse.diags(values, offset, shape=(ncells, ncells)).toarray()
+    #mat = mat - mat.mean(axis=1, keepdims=True) #####
     eig_vals, eig_vecs = linalg.eig(mat)
     if not normalize_vectors:
         return eig_vecs, eig_vals

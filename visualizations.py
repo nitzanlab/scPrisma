@@ -228,6 +228,46 @@ def visualize_distances(matrix,title="Distance matrix visualization"):
     plt.title(title)
     plt.show()
 
+def plt_mean_std_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", color='b'):
+    print(1111)
+    ct_list = ['0', '6', '12', '18']
+    mean_array = np.zeros(4)
+    std_array = np.zeros(4)
+    for i, ct in enumerate(ct_list):
+        adata_nr = (adata[adata.obs['ZT'].isin([ct])])
+        mean_array[i] = float(np.mean(adata_nr[:, gene].X))
+        std_array[i] = float(np.std(adata_nr[:, gene].X))
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(ct_list, mean_array, 'k')
+    plt.errorbar(ct_list, mean_array, std_array, linestyle='None', marker='*' , color = color)
+    #plt.plot(ct_list, e_array, 'bo', color=color)  # ct_list, dbp_array, 'k')
+    plt.ylim([down_lim, up_lim])
+    plt.title("Mean " + gene + " expression on raw " + title + " as a function of time")
+    plt.ylabel("Gene expression")
+    plt.xlabel("Circadian time")
+    plt.show()
+    layer_list = ['0', '1', '2', '3', '4', '5', '6', '7']
+    layer_list = range(8)
+    mean_array = np.zeros(8)
+    std_array = np.zeros(8)
+    for i, layer in enumerate(layer_list):
+        adata_nr = (adata[adata.obs['layer'].isin([layer])])
+        mean_array[i] = float(np.mean(adata_nr[:, gene].X))
+        std_array[i] = float(np.std(adata_nr[:, gene].X))
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(layer_list, mean_array, 'k')
+    plt.errorbar(layer_list, mean_array, std_array, linestyle='None', marker='*' , color = color)
+    plt.ylim([down_lim, up_lim])
+    plt.title("Mean " + gene + " expression on " + title + " as a function of layer")
+    plt.ylabel("Gene expression")
+    plt.xlabel("Layer")
+    plt.show()
+    sc.tl.pca(adata)
+    sc.pl.pca_scatter(adata, color=gene, title=("PCA of " + title + " painted by " + str(gene)))
+
+    pass
 
 def heatmap_crit(gene_list,cluster,crit):
     adata_raw = sc.read("SCN/" + cluster + "_raw" + ".h5ad")
@@ -409,4 +449,33 @@ def plots_liver(adata,title):
     #gene_list = ['']
     #sc.pl.pca_scatter(adata, color=i, title=("PCA of " + title + " painted by " + i))
 
+    pass
+
+def pca_2d_d_colorbar(data,color,title):
+    sns.set_style("white")
+    # Run The PCA
+    pca = PCA(n_components=2)
+    pca.fit(data)
+    # Store results of PCA in a data frame
+    result=pd.DataFrame(pca.transform(data), columns=['PCA%i' % i for i in range(2)])
+
+    # Plot initialisation
+    fig = plt.figure()
+    cmap = plt.get_cmap('Set1', np.max(color)-np.min(color)+1)
+    ax = fig.add_subplot()
+    sc = ax.scatter(result['PCA0'], result['PCA1'],  s=15 , c=color,cmap=cmap)
+    cax = plt.colorbar(sc, ticks=np.arange(np.min(color),np.max(color)+1))
+    plt.title(title)
+    # make simple, bare axis lines through space:
+
+
+    #get discrete colormap
+    # set limits .5 outside true range
+    #pca_plot = plt.matshow(data,cmap=cmap,vmin = np.min(data)-.5, vmax = np.max(data)+.5)
+    #tell the colorbar to tick at integers
+    #cax = ax.set_colorbar(sc, ticks=np.arange(np.min(color),np.max(color)+1))
+    # label the axes
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    plt.show()
     pass

@@ -297,7 +297,42 @@ def filter_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25):
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
     A = gene_normalization(A)
-    D = gradient_ascent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum,verbosity=verbosity)
+    D = gradient_descent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum,verbosity=verbosity)
+    return D
+
+def filter_linear_padded_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25):
+    '''
+    :param A: gene expression matrix
+    :param regu: regularization parameter
+    :param iterNum: iteration number
+    :param lr: learning rate
+    :return: diagonal filtering matrix
+    '''
+    Padded_array = np.zeros((int(A.shape[0]/2),A.shape[1]))
+    V = np.concatenate([A,Padded_array])
+    V = cell_normalization(V)
+    p = V.shape[1]
+    U =ge_to_spectral_matrix(V)
+    V = gene_normalization(V)
+    D = gradient_ascent_filter_matrix(V, D=np.identity((p))/2, ascent=-1, U=U.T, regu=regu, iterNum=iterNum, lr=lr)
+    return D
+
+def filter_linear_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25 , method='numeric'):
+    '''
+    :param A: gene expression matrix
+    :param regu: regularization parameter
+    :param iterNum: iteration number
+    :param lr: learning rate
+    :return: diagonal filtering matrix
+    '''
+    A = cell_normalization(A)
+    p = A.shape[1]
+    real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
+    alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
+    eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
+                                       normalize_vectors=True)
+    A = gene_normalization(A)
+    D = gradient_descent_filter_matrix_line(A, D=np.identity((p)), U=eigenvectors[:, 1:], regu=regu , max_evals=iterNum,verbosity=verbosity)
     return D
 
 def filter_non_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1, verbosity=25):
@@ -312,7 +347,7 @@ def filter_non_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1, verbosity=25)
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
     A = gene_normalization(A)
-    D = gradient_ascent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum , verbosity=verbosity)
+    D = gradient_descent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu , max_evals=iterNum , verbosity=verbosity)
     np.identity(D.shape[1])
     return (np.identity(D.shape[1]) - D)
 
@@ -336,10 +371,10 @@ def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=4
             # value = (np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - (regu * np.linalg.norm((A).dot(D), 'fro')))
             val = np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
             print("Iteration number: " + str(j) + "function value= " + str(val))
-            plot_diag(D)
-            im = plt.imshow(D)
-            plt.colorbar()
-            plt.show()
+            #plot_diag(D)
+            #im = plt.imshow(D)
+            #plt.colorbar()
+            #plt.show()
         epsilon_t *= 0.995
         T = D.diagonal()
         grad = ATUUTA * T - regu * np.sign(D)
@@ -355,10 +390,13 @@ def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=4
 
 
 
-def loss_filter_genes(A,U,D,regu):
-    return np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
+#def loss_filter_genes(A,U,D,regu):
+#    return np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
 
-def gradient_ascent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_evals = 250, verbosity = float('inf')):
+def loss_filter_genes(ATU,D,regu):
+    return np.trace((ATU.T * D.diagonal() * D.diagonal()).dot(ATU)) - regu*np.linalg.norm(D,1)
+
+def gradient_descent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_evals = 250, verbosity = float('inf')):
     '''
     :param A: ene expression matrix
     :param D: diagonal filter matrix (initial value)
@@ -372,10 +410,11 @@ def gradient_ascent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_eva
     ATUUTA = (2 * ((((A.T).dot(U)).dot(U.T)).dot(A)))
     w = D
     evals = 0
-    loss = loss_filter_genes(A,U,w,regu)
-    T = w.diagonal()
-    w = np.diag(T)
-    grad = ATUUTA * T - regu * np.sign(w)
+    ATU = (A.T).dot(U)
+    loss = loss_filter_genes(ATU=ATU,D=w,regu=regu)
+    w = diag_projection(w)
+
+    grad = ATUUTA * w - regu * np.sign(w)
     G = grad.diagonal()
     grad = np.diag(G)
     alpha = 1 / np.linalg.norm(grad)
@@ -386,19 +425,17 @@ def gradient_ascent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_eva
         gTg  = np.linalg.norm(grad)
         gTg = gTg*gTg
         new_w = w - alpha * grad
-        new_loss = loss_filter_genes(A, U, new_w, regu)
-        T = new_w.diagonal()
-        new_w = np.diag(T)
-        new_grad = ATUUTA * T - regu * np.sign(new_w)
+        new_loss = loss_filter_genes(ATU, new_w, regu)
+        new_w = diag_projection(new_w)
+        new_grad = ATUUTA * new_w - regu * np.sign(new_w)
         G = new_grad.diagonal()
         new_grad = np.diag(G)
         while new_loss > loss - gamma * alpha * gTg:
             alpha = ((alpha ** 2) * gTg) / (2 * (new_loss + alpha * gTg - loss))
             new_w = w - alpha * grad
-            new_loss = loss_filter_genes(A, U, new_w, regu)
-            T = new_w.diagonal()
-            new_w = np.diag(T)
-            new_grad = ATUUTA * T - regu * np.sign(new_w)
+            new_loss = loss_filter_genes(ATU, new_w, regu)
+            new_w = diag_projection(new_w)
+            new_grad = ATUUTA * new_w - regu * np.sign(new_w)
             G = new_grad.diagonal()
             new_grad = np.diag(G)
 
@@ -905,6 +942,7 @@ def G_full(A, B, V, alpha, regu_norm='L1'):
     if regu_norm=='L1':
         T_0 = (A * B)
         gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha) * np.sign(B)))
+        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (alpha * np.linalg.norm(B,1)))
     else:
         T_0 = (A * B)
         gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - (alpha) * 2*B)
@@ -942,18 +980,33 @@ def filter_non_cyclic_genes_vector(A, alpha=0.99, regu=2, iterNum=500):
     return D
 
 
-def filter_linear_full(A, method, regu=0.1, iterNum=300 , lr=0.1, regu_norm='L2'):
+def filter_linear_full(A, method, regu=0.1, iterNum=300 , lr=0.1, regu_norm='L1'):
+    A = cell_normalization(A)
+    real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
+    alpha = get_alpha(ngenes=A.shape[1], optimized_alpha=False, eigenvals=real_eigenvalues)
+    eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
+                                       normalize_vectors=True)
+    F = gradient_descent_full(A, F=np.ones(A.shape), V=eigenvectors[:,1:], regu=regu,
+                             iterNum=iterNum, epsilon=lr, regu_norm=regu_norm)
+    return F
+
+def enhancement_linear(A, regu=0.1, iterNum=300 , method='numeric'):
+    ''' Enhancement of linear signal
+    :param A: Gene expression matrix (reordered according to linear ordering)
+    :param regu: regularization coefficient
+    :param iterNum: iteration number
+    :return: filtering matrix
+    '''
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
     eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
                                        normalize_vectors=True)
-    F = gradient_descent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
-                             iterNum=iterNum, epsilon=lr, regu_norm=regu_norm)
+    F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors[:,1:], regu=regu, iterNum=iterNum)
     return F
 
 def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 ,
-                     error=10e-7, optimized_alpha=True, regu_norm='L2'):
+                     error=10e-7, optimized_alpha=True, regu_norm='L1'):
     ''' Filtering of linear signal
     :param A: Gene expression matrix (reordered according to linear ordering)
     :param regu: regularization coefficient
@@ -963,14 +1016,20 @@ def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 ,
 
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
+    print(A.shape)
     alpha = get_alpha(ngenes=A.shape[1], optimized_alpha=optimized_alpha, eigenvals=real_eigenvalues)
     print(alpha)
     eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
                                        normalize_vectors=True)
-    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors,
+    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors[:,1:],
                                    regu=regu, max_evals=iterNum,verbosity=verbosity ,
                                    error=error , regu_norm=regu_norm)
     return F
+#    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors[:,1:],
+#                                   regu=regu, max_evals=iterNum,verbosity=verbosity ,
+#                                   error=error , regu_norm=regu_norm)
+
+#
 
 def enhance_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
     A = gene_normalization(A)
@@ -1088,8 +1147,8 @@ def enhance_linear_full(A, method, regu=0.1, iterNum=300):
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
     eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
                                        normalize_vectors=True)
-    F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
-                             iterNum=iterNum, epsilon=0.2)
+    F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors[:,1:], regu=regu,
+                             iterNum=iterNum, epsilon=0.1)
     return F
 
 

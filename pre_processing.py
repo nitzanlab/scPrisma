@@ -52,7 +52,7 @@ def loss_alpha_p(alpha, *args):
     loss = np.linalg.norm(eigen_values-e2)
     return loss
 
-def get_alpha(ngenes=None, nchange=1, optimized_alpha=False,
+def get_alpha(ngenes=None, nchange=1, optimized_alpha=True,
               eigenvals=None):
     if optimized_alpha:
         alpha = optimize_alpha(eigenvals,loss_alpha_linear)
