@@ -72,137 +72,7 @@ def calculate_avg_groups_crit(adata,crit_list=[],criter=0):
         av_groups[i, :] /=(adata_tmp.X.shape[0])
     return av_groups
 
-def cr_filtering_iter():
-    n_obs = 250
-    groups = 4
-    adata = read_cr_single_file("cr/GSM4308343_UMI_tab_ZT00A.txt", ZT="0", n_obs=n_obs)
-    adata1 = read_cr_single_file("cr/GSM4308344_UMI_tab_ZT00B.txt", ZT="0", n_obs=n_obs)
-    adata2 = read_cr_single_file("cr/GSM4308346_UMI_tab_ZT06A.txt", ZT="6", n_obs=n_obs)
-    adata3 = read_cr_single_file("cr/GSM4308347_UMI_tab_ZT06B.txt", ZT="6", n_obs=n_obs)
-    adata4 = read_cr_single_file("cr/GSM4308348_UMI_tab_ZT12A.txt", ZT="12", n_obs=n_obs)
-    adata5 = read_cr_single_file("cr/GSM4308349_UMI_tab_ZT12B.txt", ZT="12", n_obs=n_obs)
-    adata6 = read_cr_single_file("cr/GSM4308351_UMI_tab_ZT18A.txt", ZT="18", n_obs=n_obs)
-    adata7 = read_cr_single_file("cr/GSM4308352_UMI_tab_ZT18B.txt", ZT="18", n_obs=n_obs)
-    n_obs *= 1
-    # adata = adata.concatenate(adata1,adata2,adata3,adata4,adata5,adata6,adata7)
-    adata = adata.concatenate(adata2, adata4, adata6)
-    sc.pp.filter_genes(adata, min_cells=3)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    #adata.write(filename="cr_tmp_data.h5ad")
-    #a=1/0
-    sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
 
-    avg_groups = calculate_avg_groups(adata,num_groups=4,groups_length=n_obs)
-    print("Starting norm: " +str(np.linalg.norm(adata.X)))
-    print("0-1 norm: " +str(np.linalg.norm(avg_groups[0,:]-avg_groups[1,:])))
-    print("0-2 norm: " +str(np.linalg.norm(avg_groups[0,:]-avg_groups[2,:])))
-    print("0-3 norm: " +str(np.linalg.norm(avg_groups[0,:]-avg_groups[3,:])))
-    print("1-2 norm: " +str(np.linalg.norm(avg_groups[1,:]-avg_groups[2,:])))
-    print("1-3 norm: " +str(np.linalg.norm(avg_groups[1,:]-avg_groups[3,:])))
-    print("2-3 norm: " +str(np.linalg.norm(avg_groups[2,:]-avg_groups[3,:])))
-    IN = np.zeros((adata.X.shape[0], adata.X.shape[0]))
-    for i in range(n_obs):
-        for j in range(n_obs):
-            for k in range(groups):
-                IN[i + n_obs * k, j + n_obs * k] = 1
-    E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=25,batch_size=4000)
-    plt.imshow(E)
-    plt.show()
-    e_range = Perm_to_range(E_rec)
-    adata = adata[e_range,:]
-    bdata = copy.deepcopy(adata)
-    sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='ZT')
-    original_x = copy.deepcopy(adata.X)
-    for i in range(50):
-        F = filter_full(adata.X, regu=30, iterNum=5)
-        adata.X = adata.X * F
-        avg_groups = calculate_avg_groups(adata, num_groups=4, groups_length=n_obs)
-        print("Starting norm: " + str(np.linalg.norm(adata.X)))
-        print("0-1 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[1, :])))
-        print("0-2 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[2, :])))
-        print("0-3 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[3, :])))
-        print("1-2 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[2, :])))
-        print("1-3 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[3, :])))
-        print("2-3 norm: " + str(np.linalg.norm(avg_groups[2, :] - avg_groups[3, :])))
-        print("Iteration number: " + str(i * 5) + " norm change: " + str(np.linalg.norm(bdata.X - adata.X)))
-        sc.tl.pca(adata)
-        sc.pl.pca_scatter(adata, color='ZT' ,title=("PCA after " + str(i*5) + " iterations"))
-        print("Norm change after " +str(i*5) + " iterations: " +str(np.linalg.norm(adata.X-original_x)))
-        #sc.pp.neighbors(adata)
-        #sc.tl.umap(adata)
-        #sc.pl.umap(adata, color='ZT')
-        #painted_lle_2D(adata.X, num_groups=4, groups_start=[0, n_obs, n_obs * 2, n_obs * 3],
-        #               group_end=[n_obs, n_obs * 2, n_obs * 3, n_obs * 4],group_label=[0,6,12,18])
-    pass
-
-
-def calculate_dis_cr():
-    n_obs = 250
-    groups = 4
-    adata = read_cr_single_file("cr/GSM4308343_UMI_tab_ZT00A.txt", ZT="0", n_obs=n_obs)
-    adata1 = read_cr_single_file("cr/GSM4308344_UMI_tab_ZT00B.txt", ZT="0", n_obs=n_obs)
-    adata2 = read_cr_single_file("cr/GSM4308346_UMI_tab_ZT06A.txt", ZT="6", n_obs=n_obs)
-    adata3 = read_cr_single_file("cr/GSM4308347_UMI_tab_ZT06B.txt", ZT="6", n_obs=n_obs)
-    adata4 = read_cr_single_file("cr/GSM4308348_UMI_tab_ZT12A.txt", ZT="12", n_obs=n_obs)
-    adata5 = read_cr_single_file("cr/GSM4308349_UMI_tab_ZT12B.txt", ZT="12", n_obs=n_obs)
-    adata6 = read_cr_single_file("cr/GSM4308351_UMI_tab_ZT18A.txt", ZT="18", n_obs=n_obs)
-    adata7 = read_cr_single_file("cr/GSM4308352_UMI_tab_ZT18B.txt", ZT="18", n_obs=n_obs)
-    n_obs *= 1
-    # adata = adata.concatenate(adata1,adata2,adata3,adata4,adata5,adata6,adata7)
-    adata = adata.concatenate(adata2, adata4, adata6)
-    sc.pp.filter_genes(adata, min_cells=3)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    # adata.write(filename="cr_tmp_data.h5ad")
-    # a=1/0
-    sc.pp.filter_genes_dispersion(adata, n_top_genes=7000)
-    adata.write(filename="cr_tmp_data.h5ad")
-
-    avg_groups = calculate_avg_groups(adata, num_groups=4, groups_length=n_obs)
-    print("Starting norm: " + str(np.linalg.norm(adata.X)))
-    print("0-1 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[1, :])))
-    print("0-2 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[2, :])))
-    print("0-3 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[3, :])))
-    print("1-2 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[2, :])))
-    print("1-3 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[3, :])))
-    print("2-3 norm: " + str(np.linalg.norm(avg_groups[2, :] - avg_groups[3, :])))
-    IN = np.zeros((adata.X.shape[0], adata.X.shape[0]))
-    for i in range(n_obs):
-        for j in range(n_obs):
-            for k in range(groups):
-                IN[i + n_obs * k, j + n_obs * k] = 1
-    # E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=100,batch_size=4000)
-    # plt.imshow(E)
-    # plt.show()
-    # e_range = Perm_to_range(E_rec)
-    # adata = adata[e_range,:]
-    bdata = copy.deepcopy(adata)
-    sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='ZT')
-    F = filter_full(adata.X, regu=30, iterNum=50)
-    adata.X = adata.X * F
-    avg_groups = calculate_avg_groups(adata, num_groups=4, groups_length=n_obs)
-    print("Starting norm: " + str(np.linalg.norm(adata.X)))
-    print("0-1 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[1, :])))
-    print("0-2 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[2, :])))
-    print("0-3 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[3, :])))
-    print("1-2 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[2, :])))
-    print("1-3 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[3, :])))
-    print("2-3 norm: " + str(np.linalg.norm(avg_groups[2, :] - avg_groups[3, :])))
-    print("Norm change: " + str(np.linalg.norm(bdata.X - adata.X)))
-    sc.pp.scale(adata)
-    avg_groups = calculate_avg_groups(adata, num_groups=4, groups_length=n_obs)
-    print("Starting norm: " + str(np.linalg.norm(adata.X)))
-    print("0-1 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[1, :])))
-    print("0-2 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[2, :])))
-    print("0-3 norm: " + str(np.linalg.norm(avg_groups[0, :] - avg_groups[3, :])))
-    print("1-2 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[2, :])))
-    print("1-3 norm: " + str(np.linalg.norm(avg_groups[1, :] - avg_groups[3, :])))
-    print("2-3 norm: " + str(np.linalg.norm(avg_groups[2, :] - avg_groups[3, :])))
-    print("Norm change: " + str(np.linalg.norm(bdata.X - adata.X)))
-    pass
 
 
 def cr_layer_read(path):
@@ -213,82 +83,6 @@ def cr_layer_read(path):
         layers_array[i]=position_matrx[i,:].argmax()
     return layers_array
 
-
-
-
-def liver_zonaition():
-    n_obs = 250
-    groups = 4
-    adata = read_cr_single_file_layer("cr/GSM4308343_UMI_tab_ZT00A.txt", layer_path="cr/ZT00A_reco.txt", ZT="0",
-                                      n_obs=n_obs)
-    adata1 = read_cr_single_file_layer("cr/GSM4308344_UMI_tab_ZT00B.txt", layer_path="cr/ZT00B_reco.txt", ZT="0",
-                                      n_obs=n_obs)
-    adata2 = read_cr_single_file_layer("cr/GSM4308346_UMI_tab_ZT06A.txt", layer_path="cr/ZT06A_reco.txt", ZT="6",
-                                      n_obs=n_obs)
-    adata3 = read_cr_single_file_layer("cr/GSM4308347_UMI_tab_ZT06B.txt", layer_path="cr/ZT06B_reco.txt", ZT="6",
-                                      n_obs=n_obs)
-    adata4 = read_cr_single_file_layer("cr/GSM4308348_UMI_tab_ZT12A.txt", layer_path="cr/ZT12A_reco.txt", ZT="12",
-                                      n_obs=n_obs)
-    adata5 = read_cr_single_file_layer("cr/GSM4308349_UMI_tab_ZT12B.txt", layer_path="cr/ZT12B_reco.txt", ZT="12",
-                                      n_obs=n_obs)
-    adata6 = read_cr_single_file_layer("cr/GSM4308351_UMI_tab_ZT18A.txt", layer_path="cr/ZT18A_reco.txt", ZT="18",
-                                      n_obs=n_obs)
-    adata7 = read_cr_single_file_layer("cr/GSM4308352_UMI_tab_ZT18B.txt", layer_path="cr/ZT18B_reco.txt", ZT="18",
-                                      n_obs=n_obs)
-    n_obs *= 1
-    # adata = adata.concatenate(adata1,adata2,adata3,adata4,adata5,adata6,adata7)
-    adata = adata.concatenate(adata2, adata4, adata6)
-    sc.pp.filter_genes(adata, min_cells=3)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    # adata.write(filename="cr_tmp_data.h5ad")
-    # a=1/0
-    sc.pp.filter_genes_dispersion(adata, n_top_genes=7000)
-    print("Starting norm: " +str(np.linalg.norm(adata.X)))
-    # Add sorting according to layer
-    #####Remove if you don't want to apply the reordering
-    IN = np.zeros((adata.X.shape[0], adata.X.shape[0]))
-    for i in range(n_obs):
-        for j in range(n_obs):
-            for k in range(groups):
-                IN[i + n_obs * k, j + n_obs * k] = 1
-    E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=50,batch_size=4000)
-    print("rhythmic score before: " + str(genes_score(adata, "cr/r_genes.csv")))
-    print("flat score before: " + str(genes_score(adata, "cr/f_genes.csv")))
-    print("zonation score before: " + str(genes_score(adata, "cr/z_genes.csv")))
-
-    plt.imshow(E)
-    plt.show()
-    e_range = Perm_to_range(E_rec)
-    adata = adata[e_range,:]
-    #####End of reordering
-    bdata = copy.deepcopy(adata)
-    cdata = copy.deepcopy(adata)
-    sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='layer')
-    sc.pl.pca_scatter(adata, color='ZT')
-    F = filter_cyclic_full(adata.X, regu=30, iterNum=250) #Replace with linear signal removal
-    adata.X = adata.X * F
-    print("Norm change after cyclic filtering : " +str(np.linalg.norm(adata.X - cdata.X)))
-    print("rhythmic score after cyclic removal : " + str(genes_score(adata, "cr/r_genes.csv")))
-    print("flat score after cyclic removal: " + str(genes_score(adata, "cr/f_genes.csv")))
-    print("zonation score after cyclic removal: " + str(genes_score(adata, "cr/z_genes.csv")))
-
-    sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='layer')
-    sc.pl.pca_scatter(adata, color='ZT')
-    F = filter_full(bdata.X, regu=30, iterNum=50) #Replace with linear signal enhancement
-    bdata.X = bdata.X * F
-    print("Norm change after cyclic enhancement : " +str(np.linalg.norm(bdata.X - cdata.X)))
-    print("rhythmic score after cyclic enhancement : " + str(genes_score(bdata, "cr/r_genes.csv")))
-    print("flat score after cyclic enhancement: " + str(genes_score(bdata, "cr/f_genes.csv")))
-    print("zonation score after cyclic enhancement: " + str(genes_score(bdata, "cr/z_genes.csv")))
-
-    sc.tl.pca(bdata)
-    sc.pl.pca_scatter(bdata, color='layer')
-    sc.pl.pca_scatter(bdata, color='ZT')
-
-    pass
 
 def e_to_range(E):
     order =[]
@@ -309,125 +103,8 @@ def read_list_of_genes():
             list_of_genes.append(a)
     return list_of_genes
 
-def hela_classification():
-    adata = sc.read_csv('hela/GSM4224315_out_gene_exon_tagged.dge_exonssf002_WT.txt', delimiter='\t').T
-    #sc.pp.filter_genes(adata, min_cells=10)
-    sc.pp.filter_cells(adata, min_counts=3000)
-    orig_adata = copy.deepcopy(adata)
-    sc.pp.filter_genes(adata, min_cells=30)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    sc.pp.filter_genes_dispersion(adata,n_top_genes=9000)
-    E_sga  , E_rec_sga = sga_m_reorder_rows_matrix(adata.X , iterNum=250 , batch_size=7000)
-    plt.imshow(E_sga)
-    plt.show()
-    a=1/0
-    #bdata = copy.deepcopy(adata)
-    with open('E_hela.npy', 'wb') as f:
-        np.save(f,E_rec_sga)
 
-    sga_range= e_to_range(E_rec_sga)
-    #bdata = bdata[sga_range,:]
-    #orig_adata = orig_adata[sga_range,:]
-    no_cyclic_genes = copy.deepcopy(orig_adata)
-    only_cyclic_genes = copy.deepcopy(orig_adata)
-    list_of_genes = read_list_of_genes()
-    list_of_genes = [x for x in list_of_genes if x in orig_adata.var_names]
-    list_of_genes = list(dict.fromkeys(list_of_genes)) #remove duplications
 
-    a = no_cyclic_genes[:,list_of_genes]
-    b=a.X#.X = 0#no_cyclic_genes[:,list_of_genes].X * np.zeros(no_cyclic_genes[:,list_of_genes].X.shape)
-    for gene in list_of_genes:
-        no_cyclic_genes[:,gene].X*=0
-    sc.pp.filter_genes(no_cyclic_genes, min_cells=1)
-    only_cyclic_genes = only_cyclic_genes[:,list_of_genes]
-    no_cyclic_genes = no_cyclic_genes.T
-    sc.pp.subsample(no_cyclic_genes,n_obs=only_cyclic_genes.X.shape[1])
-    only_cyclic_genes = (only_cyclic_genes.copy()).T
-    adata_classification = only_cyclic_genes.concatenate(no_cyclic_genes)
-    adata_classification = adata_classification.T
-    adata_classification = adata_classification[sga_range,:]
-    y_true = np.zeros(adata_classification.X.shape[1])
-    cyclic_genes_number = only_cyclic_genes.X.shape[0]
-    y_true[cyclic_genes_number:]=np.ones(cyclic_genes_number)
-    D = filter_cyclic_genes(adata_classification.X,regu=0.1 , iterNum=100)
-    plot_diag(D)
-    res = np.diagonal(D)
-    print(" AUC-ROC: " + str(calculate_roc_auc(res, y_true)))
-    D = filter_non_cyclic_genes(adata_classification.X,regu=0.5 , iterNum=100)
-    res = np.diagonal(D)
-    print(" AUC-ROC: " + str(calculate_roc_auc(res, ((y_true +1)%2))))
-
-    pass
-def hela_classification_load():
-    adata = sc.read_csv('hela/GSM4224315_out_gene_exon_tagged.dge_exonssf002_WT.txt', delimiter='\t').T
-    #sc.pp.filter_genes(adata, min_cells=10)
-    sc.pp.filter_cells(adata, min_genes=3000)
-    orig_adata = copy.deepcopy(adata)
-    sc.pp.filter_genes(adata, min_cells=30)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    sc.pp.filter_genes_dispersion(adata,n_top_genes=9000)
-    E_rec_sga = np.load("E_hela.npy")
-    sga_range= e_to_range(E_rec_sga)
-    no_cyclic_genes = copy.deepcopy(orig_adata)
-    only_cyclic_genes = copy.deepcopy(orig_adata)
-    list_of_genes = read_list_of_genes()
-    list_of_genes = [x for x in list_of_genes if x in orig_adata.var_names]
-    list_of_genes = list(dict.fromkeys(list_of_genes)) #remove duplications
-
-    a = no_cyclic_genes[:,list_of_genes]
-    b=a.X#.X = 0#no_cyclic_genes[:,list_of_genes].X * np.zeros(no_cyclic_genes[:,list_of_genes].X.shape)
-    for gene in list_of_genes:
-        no_cyclic_genes[:,gene].X*=0
-    sc.pp.filter_genes(no_cyclic_genes, min_cells=1)
-    only_cyclic_genes = only_cyclic_genes[:,list_of_genes]
-    no_cyclic_genes = no_cyclic_genes.T
-    auc_cyclic=[]
-    auc_non_cyclic = []
-    for i in range(50):
-        no_cyclic_genes_copy = no_cyclic_genes.copy()
-        only_cyclic_genes_copy = (only_cyclic_genes.copy()).T
-        sc.pp.subsample(only_cyclic_genes_copy,n_obs=200 ,random_state=i)
-        sc.pp.subsample(no_cyclic_genes_copy,n_obs=only_cyclic_genes_copy.X.shape[0],random_state=i)
-        only_cyclic_genes_copy = (only_cyclic_genes_copy.copy()).T
-        only_cyclic_genes_copy = (only_cyclic_genes_copy.copy()).T
-        adata_classification = only_cyclic_genes_copy.concatenate(no_cyclic_genes_copy)
-        adata_classification = adata_classification.T
-        adata_classification = adata_classification[sga_range,:]
-        y_true = np.zeros(adata_classification.X.shape[1])
-        cyclic_genes_number = only_cyclic_genes_copy.X.shape[0]
-        y_true[cyclic_genes_number:]=np.ones(cyclic_genes_number)
-        D = filter_cyclic_genes(adata_classification.X,regu=0 , iterNum=30)
-        plot_diag(D)
-        res = np.diagonal(D)
-        print(" AUC-ROC: " + str(calculate_roc_auc(res, y_true)))
-        auc_cyclic.append(calculate_roc_auc(res, y_true))
-        D = filter_non_cyclic_genes(adata_classification.X,regu=0.05 , iterNum=30)
-        res = np.diagonal(D)
-        print(" AUC-ROC: " + str(calculate_roc_auc(res, ((y_true +1)%2))))
-        auc_non_cyclic.append(calculate_roc_auc(res, ((y_true +1)%2)))
-    data = [np.array(auc_cyclic), np.array(auc_non_cyclic)]
-
-    #fig = plt.figure(figsize=(10, 7))
-
-    # Creating axes instance
-    #ax = fig.add_axes([0, 0, 1, 1])
-
-    # Creating plot
-    #bp = ax.boxplot(data)
-
-    # show plot
-    #plt.show()
-
-    fig, axes = plt.subplots(figsize=(5, 5))
-    sns.set(style="whitegrid")
-    sns.violinplot(data=data, ax=axes, orient='v')
-    axes.set_xticklabels(['Problem 4', 'Problem 3'])
-    plt.ylabel("AUC-ROC")
-    plt.title("AUC-ROC of cell cycle gene inference")
-    plt.show()
-    pass
 
 def score_list_of_genes(cyclic_by_phase,phase , filtered,unfiltered):
     '''
@@ -488,6 +165,31 @@ def score_list_of_genes_single_adata(cyclic_by_phase,phase , adata):
             continue
     return sum
 
+def score_list_of_genes_single_adata_2(cyclic_by_phase,phase , adata):
+    '''
+    :param cyclic_by_phase: Pandas dataframe of labeled genes
+    :param phase: The phase we want to analyze
+    :param adata: AnnData of  gene expression
+    :return: sum - numpy array of normalized sum of unfiltered expression of genes related to the phase, sum_f - noprmalized filtered sum
+    '''
+    df = cyclic_by_phase[phase]
+    list_of_genes=[]
+    list_a = df.values.tolist()
+    for a in list_a:
+        list_of_genes.append(a)
+    sum = adata[:,0].X
+    sum = np.array(sum)
+    sum = sum*0
+    for i in list_of_genes:
+        try:
+            gene_ex = adata[:,i].X
+            gene_ex = np.array(gene_ex)
+            sum+=gene_ex/gene_ex.max()
+        except:
+            #print("Gene does not exist")
+            continue
+    return sum
+
 def plot_cell_cycle_by_phase(adata_filtered,adata_unfiltered):
     cyclic_by_phase = pd.read_csv("data/cyclic_by_phase.csv")
     df = cyclic_by_phase["G1.S"]
@@ -521,32 +223,6 @@ def plot_cell_cycle_by_phase(adata_filtered,adata_unfiltered):
 
 
 
-def draw_brace(ax, xspan, text):
-    """Draws an annotated brace on the axes."""
-    xmin, xmax = xspan
-    xspan = xmax - xmin
-    ax_xmin, ax_xmax = ax.get_xlim()
-    xax_span = ax_xmax - ax_xmin
-    ymin, ymax = ax.get_ylim()
-    #ymin-=0.1
-    #ymax-=0.1
-    yspan = ymax - ymin
-    yspan*=0.5
-    resolution = int(xspan/xax_span*100)*2+1 # guaranteed uneven
-    beta = 300./xax_span # the higher this is, the smaller the radius
-
-    x = np.linspace(xmin, xmax, resolution)
-    x_half = x[:resolution//2+1]
-    y_half_brace = (1/(1.+np.exp(-beta*(x_half-x_half[0])))
-                    + 1/(1.+np.exp(-beta*(x_half-x_half[-1]))))
-    y = np.concatenate((y_half_brace, y_half_brace[-2::-1]))
-    y = ymin + (.05*y - .01)*yspan # adjust vertical position
-
-    ax.autoscale(False)
-    ax.plot(x, y, color='black', lw=1)
-
-    ax.text((xmax+xmin)/2., ymin-.07*yspan, text, ha='center', va='bottom')
-
 def draw_gene_ct(adata,gene,n_obs,title):
     i=gene
     fig, ax = plt.subplots()
@@ -556,28 +232,12 @@ def draw_gene_ct(adata,gene,n_obs,title):
     ax.set_title(i + " gene expression as a function of cell order- " + str(title))
     ax.set_xlabel("cell location at gene expression matrix")
     ax.set_ylabel("gene expression")
-    #draw_brace(ax, (0, n_obs), 'ZT0')
-    #draw_brace(ax, (n_obs, n_obs*2), 'ZT06')
-    #draw_brace(ax, (n_obs*2, n_obs*3), 'ZT12')
-    #draw_brace(ax, (n_obs*3, n_obs*4), 'ZT18')
-    #plt.tick_params(
-    #    axis='x',  # changes apply to the x-axis
-    #    which='both',  # both major and minor ticks are affected
-    #    bottom=False,  # ticks along the bottom edge are off
-    #    top=False,  # ticks along the top edge are off
-    #    labelbottom=False)  # labels along the bottom edge are off
-
-    #plt.show()
     sc.pl.pca_scatter(adata, color=i, title=("PCA of " + title + " painted by " + i))
-
+    pass
 
 def all_plots_liver(adata,title):
     avg_groups = calculate_avg_groups_layer(adata)
     visualize_distances(avg_groups,title="Distance between layers- " +  title)
-    #avg_groups = calculate_avg_groups_crit(adata,crit_list=[0,6,12,18],criter='ZT')#calculate_avg_groups(adata, num_groups=4)
-    #visualize_distances(avg_groups,title="Distance between time points- " + title)
-    #print("Norm before all: " +str(np.sum(adata.X)))
-    #print("Rhythmic score before all : " + str(genes_score(adata, "cr/r_genes_2.csv")))
     print("Starting norm: " + str(np.linalg.norm(adata.X)))
     values = [genes_score(adata, "cr/r_genes.csv"),genes_score(adata, "cr/z_genes.csv"),genes_score(adata, "cr/f_genes.csv")]
     #labels= ["Rhythmic genes","Zonation genes","Flat genes"]
@@ -753,79 +413,6 @@ def read_liver_data_full(n_obs=6000):
     sc.pp.subsample(adata, n_obs=n_obs, random_state=0)
     return adata
 
-def liver_full_workflow(n_obs = 250):
-    groups = 4
-    adata = read_cr_single_file_layer("cr/GSM4308343_UMI_tab_ZT00A.txt", layer_path="cr/ZT00A_reco.txt", ZT="0",
-                                      n_obs=n_obs)
-    adata1 = read_cr_single_file_layer("cr/GSM4308344_UMI_tab_ZT00B.txt", layer_path="cr/ZT00B_reco.txt", ZT="0",
-                                      n_obs=n_obs)
-    adata2 = read_cr_single_file_layer("cr/GSM4308346_UMI_tab_ZT06A.txt", layer_path="cr/ZT06A_reco.txt", ZT="6",
-                                      n_obs=n_obs)
-    adata3 = read_cr_single_file_layer("cr/GSM4308347_UMI_tab_ZT06B.txt", layer_path="cr/ZT06B_reco.txt", ZT="6",
-                                      n_obs=n_obs)
-    adata4 = read_cr_single_file_layer("cr/GSM4308348_UMI_tab_ZT12A.txt", layer_path="cr/ZT12A_reco.txt", ZT="12",
-                                      n_obs=n_obs)
-    adata5 = read_cr_single_file_layer("cr/GSM4308349_UMI_tab_ZT12B.txt", layer_path="cr/ZT12B_reco.txt", ZT="12",
-                                      n_obs=n_obs)
-    adata6 = read_cr_single_file_layer("cr/GSM4308351_UMI_tab_ZT18A.txt", layer_path="cr/ZT18A_reco.txt", ZT="18",
-                                      n_obs=n_obs)
-    adata7 = read_cr_single_file_layer("cr/GSM4308352_UMI_tab_ZT18B.txt", layer_path="cr/ZT18B_reco.txt", ZT="18",
-                                      n_obs=n_obs)
-    n_obs *= 1
-    #adata = adata.concatenate(adata1,adata2,adata3,adata4,adata5,adata6,adata7)
-    adata = adata.concatenate(adata2, adata4, adata6)
-
-
-    sc.pp.filter_genes(adata, min_cells=3)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    sc.pp.filter_genes_dispersion(adata, n_top_genes=7000)
-    adata.write(filename="cr_tmp_data.h5ad")
-    all_plots_liver(adata,title=" raw data",n_obs=n_obs)
-
-    IN = np.zeros((adata.X.shape[0], adata.X.shape[0]))
-    for i in range(n_obs):
-        for j in range(n_obs):
-            for k in range(groups):
-                IN[i + n_obs * k, j + n_obs * k] = 1
-    E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=20,batch_size=4000)
-    plt.imshow(E)
-    plt.show()
-    e_range = Perm_to_range(E_rec)
-    adata = adata[e_range,:]
-    adata.write(filename="cr_reordered_data.h5ad")
-    bdata = copy.deepcopy(adata.copy())
-    D = filter_cyclic_genes(adata.X,regu=5,iterNum=50)
-    adata.X =  adata.X.dot(D)
-    F = filter_cyclic_full(adata.X, regu=0, iterNum=250)
-    adata.X = adata.X * F
-    all_plots_liver(adata,title=" cyclic removal",n_obs=n_obs)
-    D = filter_non_cyclic_genes(bdata.X,regu=0.5,iterNum=100)
-    bdata.X =  bdata.X.dot(D)
-    F =filter_full(bdata.X, regu=25, iterNum=250)
-    bdata.X = bdata.X * F
-    all_plots_liver(bdata,title=" cyclic enhancement",n_obs=n_obs)
-    pass
-
-def cr_liver_from_file(path , n_obs=500):
-    adata = sc.read(path)
-    all_plots_liver(adata,title=" raw data",n_obs=n_obs)
-    bdata = copy.deepcopy(adata.copy())
-    cdata = copy.deepcopy(adata.copy())
-    print("Starting norm: "+ str(np.linalg.norm(cdata.X)))
-    #D = filter_cyclic_genes(adata.X,regu=5,iterNum=10)
-    #adata.X =  adata.X.dot(D)
-    F = filter_cyclic_full(adata.X, regu=0, iterNum=50)
-    adata.X = adata.X * F
-    all_plots_liver(adata,title=" cyclic removal",n_obs=n_obs)
-    print("Filtering norm change: "+ str(np.linalg.norm(cdata.X-adata.X)))
-    #D = filter_non_cyclic_genes(bdata.X,regu=-1,iterNum=10)
-    #bdata.X =  bdata.X.dot(D)
-    F = filter_full(bdata.X, regu=30, iterNum=50) #Replace with linear signal enhancement
-    bdata.X = bdata.X * F
-    print("Enhancement norm change: "+ str(np.linalg.norm(cdata.X-bdata.X)))
-    all_plots_liver(bdata,title=" cyclic enhancement",n_obs=n_obs)
-
 
 
 def read_file_ch(path, n_obs=500,fe="Positive"):
@@ -836,19 +423,6 @@ def read_file_ch(path, n_obs=500,fe="Positive"):
     sc.pp.subsample(adata,n_obs=n_obs)
     return adata
 
-def reorder_chlamydomonas_and_filter(adata):
-    sc.tl.pca(adata)
-    sc.pl.pca(adata,color="FE")
-    E , E_rec = sga_m_reorder_rows_matrix(adata.X, iterNum=50,batch_size=9000 , lr=0.1) # 25,4000,0.1
-    plt.imshow(E)
-    plt.show()
-    range1 = E_to_range(E_rec)
-    adata = adata[range1,:]
-    F = filter_cyclic_full(adata.X,regu=0,iterNum=300)
-    adata.X = adata.X * F
-    sc.tl.pca(adata)
-    sc.pl.pca(adata,color="FE")
-    return adata
 
 def E_to_range(E):
     order =[]
@@ -858,48 +432,6 @@ def E_to_range(E):
                 order.append(j)
     return np.array(order)
 
-def reorder_chlamydomonas(adata, file_name):
-    sc.tl.pca(adata)
-    sc.pl.pca(adata,color="FE")
-    bdata = copy.deepcopy(adata.copy())
-    #sc.pp.filter_genes_dispersion(adata,n_top_genes=6000)
-    E , E_rec = sga_m_reorder_rows_matrix(adata.X, iterNum=75,batch_size=5000 , lr=0.1) # 25,4000,0.1
-    plt.imshow(E)
-    plt.show()
-    order_list = E_to_range(E_rec)
-    adata = adata[order_list,:]
-    adata.write(filename=("chl_"+ file_name +"_reordered.h5ad"))
-
-    adata.obs["place"]=range(adata.X.shape[0])
-    sc.pp.neighbors(adata)
-    sc.tl.umap(adata)
-    sc.pl.umap(adata,color="place" )
-
-    #F = filter_cyclic_full(adata.X,regu=0,iterNum=1000)
-    F = filter_full(adata.X,regu=25,iterNum=150)
-    #adata.X = adata.X * F
-    #sc.tl.pca(adata)
-    #sc.pl.pca(adata,color="FE")
-    adata.X = adata.X * F
-    adata.obs["place"]=range(adata.X.shape[0])
-    sc.pp.neighbors(adata)
-    sc.tl.umap(adata)
-    sc.pl.umap(adata,color="place" )
-    chlam_genes(adata)
-    plot_diurnal_cycle_by_phase(adata)
-    return adata , F , order_list
-
-def calculate_avg_groups_fe(adata):
-    avg_groups = np.zeros((2,adata.X.shape[1]))
-    tmp_adata = adata[adata.obs["FE"] == 'Negative']
-    for j in range(tmp_adata.X.shape[0]):
-        avg_groups[0, :] += tmp_adata[j, :].X[0, :]
-    avg_groups[0, :] /= np.linalg.norm(avg_groups[0, :])
-    tmp_adata = adata[adata.obs["FE"] == 'Positive']
-    for j in range(tmp_adata.X.shape[0]):
-        avg_groups[1, :] += tmp_adata[j, :].X[0, :]
-    avg_groups[1, :] /= np.linalg.norm(avg_groups[1, :])
-    return avg_groups
 
 def read_chlamydomonas_files(n_obs=500):
     adata_neg = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
@@ -1002,17 +534,8 @@ def read_scn_single_file_no_ss(path,CT="0"):
     return adata
 
 def all_plots_scn(adata,title ):
-    #avg_groups = calculate_avg_groups_crit(adata, crit_list=['14','18','22','26','34'], criter='CT')
-    #avg_groups = calculate_avg_groups(adata, num_groups=6, groups_length=n_obs)
-    #visualize_distances(avg_groups,title="Distance between time points- " + title)
     sc.tl.pca(adata)
     sc.pl.pca_scatter(adata, color='CT' , title=("PCA of " + title + " painted by CT"))
-    #sc.pl.pca_scatter(adata, color='CT' , title=("PCA of " + title + " painted by CT"))
-    #sc.tl.umap(adata)
-    #sc.pl.umap(adata, color='CT' , title=("UMAP of " + title + " painted by CT"))
-    #print("davies_bouldin_score: "+str(davies_bouldin_score(adata.X,labels)))
-    #print("calinski_harabasz_score: "+str(calinski_harabasz_score(adata.X,labels)))
-    #print("calinski_harabasz_score: "+str(silhouette_score(adata.X,labels)))
     pass
 
 def scn_single_cluster(adata,cluster):
@@ -1127,78 +650,6 @@ def read_all_scn_no_24(n_obs=250):
     return adata
 
 
-def scn_full_workflow(n_obs = 250):
-    groups = 6
-    adata = read_scn_single_file("SCN/GSM3290582_CT14.csv",  CT="14",
-                                      n_obs=n_obs)
-    adata1 = read_scn_single_file("SCN/GSM3290583_CT18.csv",  CT="18",
-                                      n_obs=n_obs)
-    adata2 = read_scn_single_file("SCN/GSM3290584_CT22.csv",  CT="22",
-                                      n_obs=n_obs)
-    adata3 = read_scn_single_file("SCN/GSM3290585_CT26.csv",  CT="26",
-                                      n_obs=n_obs)
-    adata4 = read_scn_single_file("SCN/GSM3290586_CT30.csv",  CT="30",
-                                      n_obs=n_obs)
-    adata5 = read_scn_single_file("SCN/GSM3290587_CT34.csv", CT="34",
-                                  n_obs=n_obs)
-    adata6 = read_scn_single_file("SCN/GSM3290588_CT38.csv", CT="14",
-                                  n_obs=n_obs)
-    adata7 = read_scn_single_file("SCN/GSM3290589_CT42.csv", CT="18",
-                                  n_obs=n_obs)
-    adata8 = read_scn_single_file("SCN/GSM3290590_CT46.csv", CT="22",
-                                  n_obs=n_obs)
-    adata9 = read_scn_single_file("SCN/GSM3290591_CT50.csv", CT="26",
-                                  n_obs=n_obs)
-    adata10 = read_scn_single_file("SCN/GSM3290592_CT54.csv", CT="30",
-                                  n_obs=n_obs)
-    adata11 = read_scn_single_file("SCN/GSM3290593_CT58.csv", CT="34",
-                                  n_obs=n_obs)
-    adata = adata.concatenate(adata6)
-    adata1 = adata1.concatenate(adata7)
-    adata2 = adata2.concatenate(adata8)
-    adata3 = adata3.concatenate(adata9)
-    adata4 = adata4.concatenate(adata10)
-    adata5 = adata5.concatenate(adata11)
-
-    n_obs *= 2
-    adata = adata.concatenate(adata1, adata2,adata3, adata4, adata5)
-    sc.pp.filter_genes(adata, min_cells=3)
-    sc.pp.normalize_per_cell(adata, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata)
-    #sc.pp.filter_genes_dispersion(adata, n_top_genes=7000)
-    sc.tl.pca(adata, svd_solver='arpack')
-    sc.pp.neighbors(adata, n_neighbors=10, n_pcs=40)
-    sc.tl.louvain(adata)
-    adata.write(filename="scn_tmp_data.h5ad")
-    a=1/0
-    adata = scn_single_cluster(adata,'1')
-    #a=1/0
-    all_plots_scn(adata,title=" raw data",n_obs=n_obs)
-    #IN = np.zeros((adata.X.shape[0], adata.X.shape[0]))
-    #for i in range(n_obs):
-    #    for j in range(n_obs):
-    #        for k in range(groups):
-    #            IN[i + n_obs * k, j + n_obs * k] = 1
-    #E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=20,batch_size=4000)
-    #plt.imshow(E)
-    #plt.show()
-    #e_range = Perm_to_range(E_rec)
-    #adata = adata[e_range,:]
-    #adata.write(filename="scn_reordered_data.h5ad")
-    bdata = copy.deepcopy(adata.copy())
-    #D = filter_cyclic_genes(adata.X,regu=5,iterNum=50)
-    #adata.X =  adata.X.dot(D)
-    #F = filter_cyclic_full(adata.X, regu=0, iterNum=250)
-    #adata.X = adata.X * F
-    #all_plots_scn(adata,title=" cyclic filtering",n_obs=n_obs)
-    D = filter_non_cyclic_genes(bdata.X,regu=1,iterNum=100)
-    bdata.X =  bdata.X.dot(D)
-    for i in range(10):
-        F =filter_full(bdata.X, regu=10, iterNum=50)
-        bdata.X = bdata.X * F
-        all_plots_scn(bdata,title=" cyclic enhancement " +str(i),n_obs=n_obs)
-    pass
-
 def chlam_genes(adata):
     tmp_hour = copy.deepcopy(adata[:, 0].X)
     tmp_hour *= 0
@@ -1250,68 +701,9 @@ def plot_diurnal_cycle_by_phase(adata, title = ""):
                     #print("gene was filtered out")
                     a=1
     for i in range(6):
-        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=35,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i+1)*4))
-    #theta = (np.array(range((adata.X.shape[0]))) * 2 * np.pi) / adata.X.shape[0]
-    #fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    #for i in range(6):
-    #    ax.plot(theta, scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
-    #ax.set_rmax(2)
-    #ax.set_rticks([0.5, 1])  # Less radial ticks
-    #ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
-    #ax.grid(True)
-
-    #ax.set_title("Normalized sum of genes related different phases- " + title, va='bottom')
-    #ax.legend(range(6))
-    #ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"])
-    #plt.show()
-
-    #for i in range(6):
-    #    plt.plot(range(phase_array.shape[1]),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=17,polyorder=3))
-    #plt.legend(range(6))
-    #plt.show()
+        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=35,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i*4 +3.5)))
     pass
 
-
-def read_chlamydomonas_file(n_obs=500):
-    adata_neg = sc.read("chl_neg_reordered.h5ad")
-    adata_pos = sc.read("chl_pos_reordered.h5ad")
-    adata_unit = adata_neg.concatenate(adata_pos)
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit , color="FE")
-    labels = np.zeros(adata_unit.X.shape[0])
-    labels_str = adata_unit.obs["FE"]
-    for j, i in enumerate(labels_str):
-        if i=="Negative":
-            labels[j]=0
-        else:
-            labels[j]=1
-    print("silhoutte score before : " +str(silhouette_score(adata_unit.X,labels)))
-    F_pos = filter_cyclic_full(adata_pos.X, regu=0, iterNum=500)
-    F_neg = filter_cyclic_full(adata_neg.X, regu=0, iterNum=500)
-    bdata_pos = copy.deepcopy(adata_pos.copy())
-    bdata_neg = copy.deepcopy(adata_neg.copy())
-    bdata_unit = bdata_neg.concatenate(bdata_pos)
-    adata_pos.X = adata_pos.X * F_pos
-    adata_neg.X = adata_neg.X * F_neg
-    adata_unit = adata_neg.concatenate(adata_pos)
-    print("silhoutte after filtering : " +str(silhouette_score(adata_unit.X,labels)))
-    print("Norm change: " + str(np.linalg.norm(bdata_unit.X-adata_unit.X)))
-    print("Prev norm: " + str(np.linalg.norm(bdata_unit.X)))
-    print("New norm: " + str(np.linalg.norm(adata_unit.X)))
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-    F_pos = filter_full(bdata_pos.X, regu=25, iterNum=500)
-    F_neg = filter_full(bdata_neg.X, regu=25, iterNum=500)
-    adata_pos.X = bdata_pos.X * F_pos
-    adata_neg.X = bdata_neg.X * F_neg
-    adata_unit = adata_neg.concatenate(adata_pos)
-    print("silhoutte after enhancment : " +str(silhouette_score(adata_unit.X,labels)))
-    print("Norm change: " + str(np.linalg.norm(bdata_unit.X-adata_unit.X)))
-    print("Prev norm: " + str(np.linalg.norm(bdata_unit.X)))
-    print("New norm: " + str(np.linalg.norm(adata_unit.X)))
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-    pass
 
 
 
@@ -1542,80 +934,6 @@ def score_single_type(path,cluster):
     all_plots_scn(adata, title=("Filtered data, cluster: " +str(cluster)), n_obs=1)
     pass
 
-def score_single_type_2(path,cluster):
-    adata = sc.read(filename=path)
-    #sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
-    adata = scn_single_cluster(adata, str(cluster))
-    sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
-    IN = indicator_matrix_scn(adata)
-    E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=50,batch_size=4000)
-    e_range = Perm_to_range(E_rec)
-    adata = adata[e_range,:]
-    labels_str = adata.obs["CT"]
-    labels = np.zeros(adata.X.shape[0])
-    for j, k in enumerate(labels_str):
-        labels[j]=int(k)
-    print(str(cluster))
-    print("silhoutte score before: " + str(silhouette_score(adata.X, labels)))
-    # a=1/0
-    all_plots_scn(adata, title=("Raw data, cluster: " +str(cluster)), n_obs=1)
-    #D = filter_non_cyclic_genes(adata.X, regu=0.1, iterNum=100)
-    #adata.X = adata.X.dot(D)
-    F = filter_full(adata.X, regu=25, iterNum=300)
-    print(str(cluster))
-    print("norm: " + str(np.linalg.norm(adata.X)))
-    print("norm change: " + str(np.linalg.norm(adata.X - adata.X *F)))
-    adata.X = adata.X * F
-    labels_str = adata.obs["CT"]
-    labels = np.zeros(adata.X.shape[0])
-    adata.write(filename=("scn_" +str(cluster)+ "_filtered_data_300_25_7000_ordered.h5ad"),compression='gzip')
-
-    for j, k in enumerate(labels_str):
-        labels[j]=int(k)
-    print(str(cluster))
-    print("silhoutte score after: " + str(silhouette_score(adata.X, labels)))
-
-    all_plots_scn(adata, title=("Filtered data, cluster: " +str(cluster)), n_obs=1)
-    pass
-
-def score_single_type_3(path,cluster):
-    adata = sc.read(filename=path)
-    #sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
-    adata = scn_single_cluster(adata, str(cluster))
-    sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
-    IN = indicator_matrix_scn(adata)
-    E , E_rec = reorder_indicator(adata.X,IN=IN , iterNum=1,batch_size=4000)
-    e_range = Perm_to_range(E_rec)
-    adata = adata[e_range,:]
-    labels_str = adata.obs["CT"]
-    labels = np.zeros(adata.X.shape[0])
-    for j, k in enumerate(labels_str):
-        labels[j]=int(k)
-    print(str(cluster))
-    bdata = adata.copy()
-    print("silhoutte score before: " + str(silhouette_score(adata.X, labels)))
-    print("norm: " + str(np.linalg.norm(adata.X)))
-    # a=1/0
-    all_plots_scn(adata, title=("Raw data, cluster: " +str(cluster)), n_obs=1)
-    D = filter_non_cyclic_genes(adata.X, regu=1, iterNum=100)
-    print("norm after gene inference: " + str(np.linalg.norm(adata.X)))
-    adata.X = adata.X.dot(D)
-    F = filter_full(adata.X, regu=10, iterNum=250)
-    print(str(cluster))
-    print("norm: " + str(np.linalg.norm(adata.X)))
-    print("norm change: " + str(np.linalg.norm(bdata.X - adata.X *F)))
-    adata.X = adata.X * F
-    labels_str = adata.obs["CT"]
-    labels = np.zeros(adata.X.shape[0])
-    adata.write(filename=("scn_" +str(cluster)+ "_filtered_data_small.h5ad"),compression='gzip')
-
-    for j, k in enumerate(labels_str):
-        labels[j]=int(k)
-    print(str(cluster))
-    print("silhoutte score after: " + str(silhouette_score(adata.X, labels)))
-
-    all_plots_scn(adata, title=("Filtered data, cluster: " +str(cluster)), n_obs=1)
-    pass
 
 
 
@@ -1646,32 +964,6 @@ def paint_HeLa_by_phase(adata_filtered,adata_unfiltered):
     plot_cell_cycle_by_phase(adata_filtered, adata_unfiltered)
     pass
 
-#def hela_gene_inference(adata, number_of_genes):
-#    no_cyclic_genes = copy.deepcopy(adata)
-#    only_cyclic_genes = copy.deepcopy(adata)
-#    list_of_genes = read_list_of_genes()
-#    list_of_genes = [x for x in list_of_genes if x in adata.var_names]
-#    list_of_genes = list(dict.fromkeys(list_of_genes))  # remove duplications
-#    for gene in list_of_genes:
-#        no_cyclic_genes[:, gene].X *= 0
-#    sc.pp.filter_genes(no_cyclic_genes, min_cells=1)
-#    only_cyclic_genes = only_cyclic_genes[:,list_of_genes]
-#    no_cyclic_genes  =no_cyclic_genes.T
-#    #sc.pp.subsample(no_cyclic_genes, n_obs=only_cyclic_genes.X.shape[1])
-#    tic = time.time()
-#    tic = int(tic)
-#    sc.pp.subsample(no_cyclic_genes, n_obs=number_of_genes , random_state=tic)
-#    only_cyclic_genes = (only_cyclic_genes.copy()).T
-#    sc.pp.subsample(only_cyclic_genes, n_obs=number_of_genes, random_state=tic)
-#    adata_classification = only_cyclic_genes.concatenate(no_cyclic_genes)
-#    adata_classification = adata_classification.T
-#    y_true = np.zeros(number_of_genes*2)
-#    y_true[:number_of_genes] = np.ones(number_of_genes)
-#    D = filter_cyclic_genes(adata_classification.X, regu=0, iterNum=15)
-#    plot_diag(D)
-#    res = np.diagonal(D)
-#    print(" AUC-ROC: " + str(calculate_roc_auc(res, y_true)))
-#    return calculate_roc_auc(res, y_true)
 
 
 def sort_data_linear(adata):
@@ -1758,10 +1050,12 @@ def all_plots_hela(adata,title):
 
     ax.set_title(("Normalized sum of genes related different phases- " +str(title)), va='bottom')
 
-    ax.plot(theta, savgol_filter((S/ S.max()),17,3))
-    ax.plot(theta, savgol_filter((G2 / G2.max()),17,3))
-    ax.plot(theta, savgol_filter((G2M / G2M.max()),17,3))
-    ax.plot(theta, savgol_filter((MG1 / MG1.max()),17,3))
+    ax.plot(theta, savgol_filter((S/ S.max()),25,3))
+    ax.plot(theta, savgol_filter((G2 / G2.max()),25,3))
+    ax.plot(theta, savgol_filter((G2M / G2M.max()),25,3))
+    ax.plot(theta, savgol_filter((MG1 / MG1.max()),25,3))
     ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"])
     plt.show()
     pass
+
+
