@@ -693,9 +693,9 @@ def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , re
         F = F + epsilon_t * (grad +np.random.normal(0,0.01,grad.shape))
         F = F.clip(min=0, max=1)
         j += 1
-    plt.imshow(F)
-    plt.colorbar()
-    plt.show()
+    #plt.imshow(F)
+    #plt.colorbar()
+    #plt.show()
     return F
 
 def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1'):

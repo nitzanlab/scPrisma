@@ -269,6 +269,48 @@ def plt_mean_std_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", c
 
     pass
 
+def plt_mean_std_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", color='b'):
+    print(1111)
+    ct_list = ['0', '6', '12', '18']
+    mean_array = np.zeros(4)
+    std_array = np.zeros(4)
+    for i, ct in enumerate(ct_list):
+        adata_nr = (adata[adata.obs['ZT'].isin([ct])])
+        mean_array[i] = float(np.mean(adata_nr[:, gene].X))
+        std_array[i] = float(np.std(adata_nr[:, gene].X))
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(ct_list, mean_array, 'k')
+    plt.errorbar(ct_list, mean_array, std_array, linestyle='None', marker='*' , color = color)
+    #plt.plot(ct_list, e_array, 'bo', color=color)  # ct_list, dbp_array, 'k')
+    plt.ylim([down_lim, up_lim])
+    plt.title("Mean " + gene + " expression on raw " + title + " as a function of time")
+    plt.ylabel("Gene expression")
+    plt.xlabel("Circadian time")
+    plt.show()
+    layer_list = ['0', '1', '2', '3', '4', '5', '6', '7']
+    layer_list = range(8)
+    mean_array = np.zeros(8)
+    std_array = np.zeros(8)
+    for i, layer in enumerate(layer_list):
+        adata_nr = (adata[adata.obs['layer'].isin([layer])])
+        mean_array[i] = float(np.mean(adata_nr[:, gene].X))
+        std_array[i] = float(np.std(adata_nr[:, gene].X))
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(layer_list, mean_array, 'k')
+    plt.errorbar(layer_list, mean_array, std_array, linestyle='None', marker='*' , color = color)
+    plt.ylim([down_lim, up_lim])
+    plt.title("Mean " + gene + " expression on " + title + " as a function of layer")
+    plt.ylabel("Gene expression")
+    plt.xlabel("Layer")
+    plt.show()
+    sc.tl.pca(adata)
+    sc.pl.pca_scatter(adata, color=gene, title=("PCA of " + title + " painted by " + str(gene)))
+
+    pass
+
+
 def heatmap_crit(gene_list,cluster,crit):
     adata_raw = sc.read("SCN/" + cluster + "_raw" + ".h5ad")
     adata_en = sc.read("SCN/" +cluster + "_en" + ".h5ad")
@@ -478,4 +520,50 @@ def pca_2d_d_colorbar(data,color,title):
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     plt.show()
+    pass
+
+def get_mean_ct_gene_liver(adata, gene):
+    ct_list = ['0', '6', '12', '18']
+    mean_array_ct = np.zeros(4)
+    std_array = np.zeros(4)
+    for i, ct in enumerate(ct_list):
+        adata_nr = (adata[adata.obs['ZT'].isin([ct])])
+        mean_array_ct[i] = float(np.mean(adata_nr[:, gene].X))
+    return mean_array_ct
+
+def get_mean_layer_gene_liver(adata, gene):
+    layer_list = ['0', '1', '2', '3', '4', '5', '6', '7']
+    layer_list = range(8)
+    mean_array_layer = np.zeros(8)
+    std_array = np.zeros(8)
+    for i, layer in enumerate(layer_list):
+        adata_nr = (adata[adata.obs['layer'].isin([layer])])
+        mean_array_layer[i] = float(np.mean(adata_nr[:, gene].X))
+
+    return mean_array_layer
+
+
+def plt_mean_heatmap_gene_liver(adata, adata_cyclic_filtered , adata_cyclic_en,adata_linear_filtered , adata_linear_en,gene ):
+    data = np.array([get_mean_ct_gene_liver(adata,gene),
+                    get_mean_ct_gene_liver(adata_cyclic_filtered,gene),
+                    get_mean_ct_gene_liver(adata_cyclic_en,gene),
+                    get_mean_ct_gene_liver(adata_linear_filtered,gene),
+                    get_mean_ct_gene_liver(adata_linear_en,gene)])
+    df = pd.DataFrame(data, index=
+                ['Raw data','Cyclic filtered','Cyclic enhanced','Linear filtered','Linear enhanced'], columns=['CT0','CT6','CT12','CT18'])
+    ax = sns.heatmap(df, cmap='rocket_r').set(title= gene + " expression as a function of sampling CT")
+    #ax.set_xlabel('Circadian timepoint')
+    plt.show()
+
+    data = np.array([get_mean_layer_gene_liver(adata,gene),
+                    get_mean_layer_gene_liver(adata_cyclic_filtered,gene),
+                    get_mean_layer_gene_liver(adata_cyclic_en,gene),
+                    get_mean_layer_gene_liver(adata_linear_filtered,gene),
+                    get_mean_layer_gene_liver(adata_linear_en,gene)])
+    df = pd.DataFrame(data, index=
+                ['Raw data','Cyclic filtered','Cyclic enhanced','Linear filtered','Linear enhanced'], columns=range(8))
+    ax = sns.heatmap(df , cmap='rocket_r').set(title= gene + " expression as a function of layer")
+    #ax.set_xlabel('Zonation layer')
+    plt.show()
+
     pass

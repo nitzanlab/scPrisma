@@ -136,6 +136,11 @@ def score_list_of_genes(cyclic_by_phase,phase , filtered,unfiltered):
     return sum , sum_f
 
 def shuffle_adata(adata):
+    '''
+    Shuffle the rows(obs/cells) of adata
+    :param adata: adata
+    :return: shuffled adata
+    '''
     perm = np.random.permutation(range(adata.X.shape[0]))
     return adata[perm,:]
 
@@ -416,6 +421,12 @@ def read_liver_data_full(n_obs=6000):
 
 
 def read_file_ch(path, n_obs=500,fe="Positive"):
+    '''
+    :param path: Path to file
+    :param n_obs: number of observations to subsample
+    :param fe:  iron replete (Fe+) or iron deficient (Fe-)
+    :return: adata object
+    '''
     adata = sc.read_csv(path).T
     adata.var_names_make_unique()
     adata.obs_names_make_unique()
@@ -434,89 +445,13 @@ def E_to_range(E):
 
 
 def read_chlamydomonas_files(n_obs=500):
+    '''
+    :param n_obs: number of observations to subsample
+    :return: iron deficient (Fe-) and iron replete (Fe+) adata objects
+    '''
     adata_neg = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
     adata_pos = read_file_ch("Chlamydomonas/GSM4770980_run1_CC5390_Fe_pos.csv",n_obs=n_obs,fe="Positive")
     return adata_neg , adata_pos
-
-def read_chlamydomonas(n_obs=500):
-    adata_neg1 = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
-    #adata_neg2 = read_file_ch("Chlamydomonas/GSM4770986_run2_CC5390_N_neg_rep1.csv",n_obs=n_obs,fe="Negative")
-    adata_pos1 = read_file_ch("Chlamydomonas/GSM4770980_run1_CC5390_Fe_pos.csv",n_obs=n_obs,fe="Positive")
-
-    #adata_pos2 = read_file_ch("Chlamydomonas/GSM4770983_run2_CC4532_Fe_pos.csv",n_obs=n_obs,fe="Positive")
-    adata_neg= adata_neg1#.concatenate(adata_neg2)
-    adata_pos= adata_pos1#.concatenate(adata_pos2)
-    sc.pp.filter_cells(adata_neg, min_genes=100)
-    sc.pp.filter_cells(adata_pos, min_genes=100)
-    adata_unit = adata_neg.concatenate(adata_pos)
-    bdata_unit = copy.deepcopy(adata_unit.copy())
-    sc.pp.normalize_per_cell(bdata_unit, counts_per_cell_after=1e4)
-    sc.pp.log1p(bdata_unit)
-    filter_result = sc.pp.filter_genes_dispersion(
-        bdata_unit.X,  n_top_genes=7000, log=False
-    )
-    adata_unit._inplace_subset_var(filter_result.gene_subset)
-    adata_neg1._inplace_subset_var(filter_result.gene_subset)  # filter genes
-    adata_pos1._inplace_subset_var(filter_result.gene_subset)  # filter genes
-    #chlam_genes(adata_unit)
-    labels_str = adata_unit.obs["FE"]
-    labels = np.zeros(adata_unit.X.shape[0])
-    for j, i in enumerate(labels_str):
-        if i=="Negative":
-            labels[j]=0
-        else:
-            labels[j]=1
-    print("silhoutte score before : " +str(silhouette_score(adata_unit.X,labels)))
-    avg_group = calculate_avg_groups_fe(adata_unit)
-    print ("Center distance before: " +str(np.linalg.norm(avg_group[0,:]-avg_group[1,:])))
-    #sc.pp.filter_genes(adata, min_cells=10) #50
-    #sc.pp.filter_cells(adata_neg, min_genes=400)
-    bdata_neg = copy.deepcopy(adata_neg.copy())
-    #sc.pp.filter_cells(adata_pos, min_genes=400)
-    bdata_pos = copy.deepcopy(adata_pos.copy())
-    #sc.pp.filter_cells(adata_unit, min_genes=400)
-    sc.pp.normalize_per_cell(adata_neg, counts_per_cell_after=1e4)
-    sc.pp.normalize_per_cell(adata_pos, counts_per_cell_after=1e4)
-    #sc.pp.normalize_per_cell(adata_unit, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata_neg)
-    sc.pp.log1p(adata_pos)
-    #sc.pp.log1p(adata_unit)
-    print("silhoutte score before  log1: " +str(silhouette_score(adata_unit.X,labels)))
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-    sc.tl.tsne(adata_unit)
-    sc.pl.tsne(adata_unit,color="FE")
-    adata_neg , F_neg , order_list_neg = reorder_chlamydomonas(adata_neg , file_name="neg")
-    adata_pos , F_pos , order_list_pos = reorder_chlamydomonas(adata_pos , file_name="pos")
-    bdata_neg = bdata_neg[order_list_neg,:]
-    bdata_neg.X = bdata_neg.X * F_neg
-    bdata_pos = bdata_pos[order_list_pos,:]
-
-    print ("Pos norm change: " +str(np.linalg.norm(bdata_pos.X-bdata_pos.X * F_pos)))
-    print ("Pos norm before: " +str(np.linalg.norm(bdata_pos.X)))
-    bdata_pos.X = bdata_pos.X * F_pos
-    bdata_unit = bdata_neg.concatenate(bdata_pos)
-    labels_str = bdata_unit.obs["FE"]
-    labels = np.zeros(bdata_unit.X.shape[0])
-    for j, i in enumerate(labels_str):
-        if i=="Negative":
-            labels[j]=0
-        else:
-            labels[j]=1
-    avg_group = calculate_avg_groups_fe(bdata_unit)
-    print ("Center distance after: " +str(np.linalg.norm(avg_group[0,:]-avg_group[1,:])))
-    print("silhoutte score after bog log1 : " +str(silhouette_score(bdata_unit.X,labels)))
-    sc.pp.normalize_per_cell(bdata_unit, counts_per_cell_after=1e4)
-    sc.pp.log1p(bdata_unit)
-    chlam_genes(bdata_unit)
-    print("silhoutte score after log1 : " +str(silhouette_score(bdata_unit.X,labels)))
-    sc.tl.pca(bdata_unit)
-    sc.pl.pca(bdata_unit,color="FE")
-    sc.tl.tsne(bdata_unit)
-    sc.pl.tsne(bdata_unit,color="FE")
-    print ("Norm change: " +str(np.linalg.norm(bdata_unit.X-adata_unit.X)))
-    print ("Bdata norm: " +str(np.linalg.norm(bdata_unit.X)))
-    pass
 
 def read_scn_single_file(path,CT="0" , n_obs=300):
     adata = sc.read_csv(path).T
@@ -707,197 +642,6 @@ def plot_diurnal_cycle_by_phase(adata, title = ""):
 
 
 
-def read_chlamydomonas_innerr_log(n_obs=500):
-    adata_neg = read_file_ch("Chlamydomonas/GSM4770979_run1_CC5390_Fe_neg.csv",n_obs=n_obs,fe="Negative")
-    adata_pos = read_file_ch("Chlamydomonas/GSM4770980_run1_CC5390_Fe_pos.csv",n_obs=n_obs,fe="Positive")
-    sc.pp.filter_cells(adata_neg, min_genes=100)
-    sc.pp.filter_cells(adata_pos, min_genes=100)
-    adata_unit = adata_neg.concatenate(adata_pos)
-    bdata_unit = copy.deepcopy(adata_unit.copy())
-    sc.pp.normalize_per_cell(bdata_unit, counts_per_cell_after=1e4)
-    sc.pp.log1p(bdata_unit)
-    filter_result = sc.pp.filter_genes_dispersion(
-        bdata_unit.X,  n_top_genes=7000, log=False
-    )
-    adata_unit._inplace_subset_var(filter_result.gene_subset)
-    adata_neg._inplace_subset_var(filter_result.gene_subset)  # filter genes
-    adata_pos._inplace_subset_var(filter_result.gene_subset)  # filter genes
-    labels_str = adata_unit.obs["FE"]
-    labels = np.zeros(adata_unit.X.shape[0])
-    for j, i in enumerate(labels_str):
-        if i=="Negative":
-            labels[j]=0
-        else:
-            labels[j]=1
-    print("silhoutte score : " + str(silhouette_score(adata_unit.X, labels)))
-    print("davies_bouldin_score score : " + str(davies_bouldin_score(adata_unit.X, labels)))
-    print("calinski_harabasz_score before : " + str(calinski_harabasz_score(adata_unit.X, labels)))
-    avg_group = calculate_avg_groups_fe(adata_unit)
-    print ("Center distance before: " +str(np.linalg.norm(avg_group[0,:]-avg_group[1,:])))
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-    sc.tl.tsne(adata_unit)
-    sc.pl.tsne(adata_unit,color="FE")
-    adata_neg , F_neg , order_list_neg = reorder_chlamydomonas_2(adata_neg , file_name="neg")
-    adata_pos , F_pos , order_list_pos = reorder_chlamydomonas_2(adata_pos , file_name="pos")
-    adata_unit = adata_neg.concatenate(adata_pos)
-    labels_str = bdata_unit.obs["FE"]
-    labels = np.zeros(bdata_unit.X.shape[0])
-    for j, i in enumerate(labels_str):
-        if i=="Negative":
-            labels[j]=0
-        else:
-            labels[j]=1
-    print("silhoutte score : " + str(silhouette_score(adata_unit.X, labels)))
-    print("davies_bouldin_score score : " + str(davies_bouldin_score(adata_unit.X, labels)))
-    print("calinski_harabasz_score before : " + str(calinski_harabasz_score(adata_unit.X, labels)))
-    avg_group = calculate_avg_groups_fe(adata_unit)
-    print ("Center distance before: " +str(np.linalg.norm(avg_group[0,:]-avg_group[1,:])))
-    pass
-
-def reorder_chlamydomonas_2(adata, file_name):
-    sc.tl.pca(adata)
-    sc.pl.pca(adata,color="FE")
-    bdata = copy.deepcopy(adata.copy())
-    sc.pp.normalize_per_cell(bdata, counts_per_cell_after=1e4)
-    sc.pp.log1p(bdata)
-    E , E_rec = sga_m_reorder_rows_matrix(bdata.X, iterNum=50,batch_size=5000 , lr=0.1) # 25,4000,0.1
-    plt.imshow(E)
-    plt.show()
-    order_list = E_to_range(E_rec)
-    adata = adata[order_list,:]
-    adata.write(filename=("chl_"+ file_name +"_reordered.h5ad"))
-    adata.obs["place"]=range(adata.X.shape[0])
-    sc.pp.neighbors(adata)
-    sc.tl.umap(adata)
-    sc.pl.umap(adata,color="place" )
-    F = filter_full(bdata.X,regu=25,iterNum=150)
-    print ("norm change: " +str(np.linalg.norm(adata.X-adata.X * F)))
-    adata.X = adata.X * F
-    sc.tl.pca(adata)
-    sc.pl.pca(adata,color="FE")
-    chlam_genes(adata)
-    plot_diurnal_cycle_by_phase(adata)
-
-    return adata , F , order_list
-
-def seurat_chl(adata_path_pos,adata_path_neg,genes_path):
-    adata_pos = sc.read(adata_path_pos)
-    adata_neg = sc.read(adata_path_neg)
-    phase0_3 = []
-    phase4_7 = []
-    phase8_11 = []
-    phase12_15 = []
-    phase16_19 = []
-    phase20_23 = []
-    tmp_hour = copy.deepcopy(adata_pos[:, 0].X)
-    tmp_hour *= 0
-    df = pd.read_csv("Chlamydomonas/ch_genes.csv", header=None)
-    new_header = df.iloc[1]
-    df = df[2:]
-    df.columns = new_header
-    df = df.dropna()
-
-    for i in range(8):
-        if i % 2 == 0:
-            phase0_3_genes = df.loc[df['phase'] == str(int(0.5 * i))]
-            phase4_7_genes = df.loc[df['phase'] == str(int(0.5 * i + 4))]
-            phase8_11_genes = df.loc[df['phase'] == str(int(0.5 * i + 8))]
-            phase12_15_genes = df.loc[df['phase'] == str(int(0.5 * i + 12))]
-            phase16_19_genes = df.loc[df['phase'] == str(int(0.5 * i +  16))]
-            phase20_23_genes = df.loc[df['phase'] == str(int(0.5 * i + + 20))]
-        else:
-            phase0_3_genes = df.loc[df['phase'] == str(0.5 * i)]
-            phase4_7_genes = df.loc[df['phase'] == str(0.5 * i + 4)]
-            phase8_11_genes = df.loc[df['phase'] == str(0.5 * i + 8)]
-            phase12_15_genes = df.loc[df['phase'] == str(0.5 * i + 12)]
-            phase16_19_genes = df.loc[df['phase'] == str(0.5 * i +  16)]
-            phase20_23_genes = df.loc[df['phase'] == str(0.5 * i + + 20)]
-        for j in phase0_3_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase0_3.append(gene_string)
-        for j in phase4_7_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase4_7.append(gene_string)
-        for j in phase8_11_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase8_11.append(gene_string)
-        for j in phase0_3_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase0_3.append(gene_string)
-        for j in phase4_7_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase4_7.append(gene_string)
-        for j in phase8_11_genes.values:
-            gene_string = j[0] + ".v5.5"
-            phase8_11.append(gene_string)
-
-    pass
-
-def seurat_chl(adata_path_pos,adata_path_neg,genes_path="Chlamydomonas/ch_genes.csv"):
-    adata_pos = sc.read(adata_path_pos)
-    adata_neg = sc.read(adata_path_neg)
-    sc.pp.normalize_per_cell(adata_neg, counts_per_cell_after=1e4)
-    sc.pp.normalize_per_cell(adata_pos, counts_per_cell_after=1e4)
-    sc.pp.log1p(adata_neg)
-    sc.pp.log1p(adata_pos)
-    sc.pp.scale(adata_neg)
-    sc.pp.scale(adata_pos)
-    adata_unit = adata_neg.concatenate(adata_pos)
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-
-    print("Old norm pos: " + str(np.linalg.norm(adata_pos.X)))
-    print("Old norm neg: " + str(np.linalg.norm(adata_neg.X)))
-
-    gene_list = []
-    tmp_hour = copy.deepcopy(adata_pos[:, 0].X)
-    tmp_hour *= 0
-    df = pd.read_csv(genes_path, header=None)
-    new_header = df.iloc[1]
-    df = df[2:]
-    df.columns = new_header
-    df = df.dropna()
-
-    for i in range(48):
-        if i % 2 == 0:
-            phase_genes = df.loc[df['phase'] == str(int(0.5 * i))]
-        else:
-            phase_genes = df.loc[df['phase'] == str(0.5 * i)]
-        for j in phase_genes.values:
-            gene_string = j[0] + ".v5.5"
-            gene_list.append(gene_string)
-    chl_genes = [x for x in gene_list if x in adata_pos.var_names]
-    #s_genes = chl_genes[:int(len(chl_genes)/3)]
-    #g2m_genes = chl_genes[int(len(chl_genes)/3):int(2*len(chl_genes)/3)]
-    s_genes = chl_genes[:int(len(chl_genes)/2)]
-    g2m_genes = chl_genes[int(len(chl_genes)/2):]
-    sc.tl.score_genes_cell_cycle(adata_pos, s_genes=s_genes, g2m_genes=g2m_genes)
-    sc.pp.regress_out(adata_pos, ['S_score', 'G2M_score'])
-    sc.tl.score_genes_cell_cycle(adata_neg, s_genes=s_genes, g2m_genes=g2m_genes)
-    sc.pp.regress_out(adata_neg, ['S_score', 'G2M_score'])
-
-    adata_unit = adata_neg.concatenate(adata_pos)
-    labels_str = adata_unit.obs["FE"]
-    labels = np.zeros(adata_unit.X.shape[0])
-    sc.tl.pca(adata_unit)
-    sc.pl.pca(adata_unit,color="FE")
-
-    for j, i in enumerate(labels_str):
-        if i == "Negative":
-            labels[j] = 0
-        else:
-            labels[j] = 1
-    print("New norm pos: " + str(np.linalg.norm(adata_pos.X)))
-    print("New norm neg: " + str(np.linalg.norm(adata_neg.X)))
-    # print(f1_score(labels,kmeans.labels_))
-    # print(1 - f1_score(labels,kmeans.labels_))
-    print("silhoutte score : " + str(silhouette_score(adata_unit.X, labels)))
-    print("davies_bouldin_score score : " + str(davies_bouldin_score(adata_unit.X, labels)))
-    print("calinski_harabasz_score before : " + str(calinski_harabasz_score(adata_unit.X, labels)))
-
-    pass
-
 def score_single_type(path,cluster):
     adata = sc.read(filename=path)
     #sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
@@ -990,35 +734,6 @@ def sort_data_crit(adata,crit,crit_list):
     sorted_data = adata[order,:]
     return sorted_data
 
-def liver_linear_theoretic_cov(adata):
-    layers = np.zeros(8)
-    obs = adata.obs
-    for i, row in obs.iterrows():
-        layer = int(row['layer'])
-        layers[layer]+=1
-    n= adata.X.shape[0]
-    theoretic_cov = np.zeros((n,n))
-    layers_sum = np.zeros(8)
-    for i , layer in enumerate(layers):
-        if i>0:
-            layers_sum[i] = layers_sum[i-1] + layers[i-1]
-        layers_sum[0]=0
-    layers_sum = layers_sum
-    alpha=1/7
-    layers = layers.astype(int)
-    layers_sum = layers_sum.astype(int)
-    for i , layer in enumerate(layers):  #Column cluster
-        for j in range(i): #row cluster
-            for k in range(layers[j]): #number of elements in row cluster
-                for p in range(layers[i]): #number of elements in column cluster
-                    theoretic_cov[layers_sum[i] + p , layers_sum[j] + k] = ((7-(i-j)))*alpha
-        for j in range(i,8): #row cluster
-            for k in range(layers[j]): #number of elements in row cluster
-                for p in range(layers[i]): #number of elements in column cluster
-                    theoretic_cov[layers_sum[i] + p , layers_sum[j] + k] = ((7-(j-i)))*alpha
-
-
-    return theoretic_cov
 
 def all_plots_hela(adata,title):
     ranged_pca_2d(adata.X,color=range(adata.X.shape[0]),title=("HeLa cells PCA, painted by cell location in the matrix"))
