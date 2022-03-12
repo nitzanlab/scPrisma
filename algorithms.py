@@ -94,6 +94,7 @@ def sga_matrix(A, E, V, iterNum=400, batch_size=20, lr=0.1):
 
 def fAndG_matrix(A, E, V):
     '''
+    Calculate the function value and the gradient of A matrix
     :param A: gene expression matrix
     :param E: permutation matrix
     :param V: spectral matrix
@@ -124,6 +125,7 @@ def fAndG_matrix(A, E, V):
 
 def G_matrix(A, E, VVT):
     '''
+    Calculate the gradient of A matrix
     :param A: gene expression matrix
     :param E: permutation matrix
     :param V: spectral matrix
