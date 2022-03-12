@@ -1,5 +1,6 @@
 # scPrisma
-scPrisma is a workflow based on projection over theoretic covariance spectrum for pseudotime reconstruction, informative genes inference and signals filtering and enhancement. 
+scPrisma is a spectral analysis method, for pseudotime reconstruction, informative genes inference, filtering, and enhancement of underlying cyclic signals
+
 
 <br />
 
@@ -94,4 +95,5 @@ As long as we increase the regularization parameter we will filter out <b><u>mor
 
 <!-- CONTACT -->
 ## Contact
+Jonathan Karin - jonathan.karin [at ] mail.huji.ac.il
 ....
