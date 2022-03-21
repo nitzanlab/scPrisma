@@ -4,7 +4,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 
 <br />
 
-![workflow](https://github.com/nitzanlab/scPrisma/workflow.png)
+![workflow](https://github.com/nitzanlab/scPrisma/blob/main/workflow.png?raw=true)
 <br />
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
