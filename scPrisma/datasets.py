@@ -755,22 +755,65 @@ def all_plots_hela(adata,title):
     G2M= G2M[:,0]
     G1_len = len(savgol_filter((G1S / G1S.max()),7,5))
     theta = (np.array(range(G1_len)) * 2 * np.pi) / G1_len
-    # theta = 2 * np.pi * range(len(S))
+    max_val = max(np.max(savgol_filter((S/ np.sum(S)),25,3)),
+                  np.max(savgol_filter((G1S/ np.sum(G1S)),25,3)),
+                  np.max(savgol_filter((G2/ np.sum(G2)),25,3)),
+                  np.max(savgol_filter((G2M/ np.sum(G2M)),25,3)),
+                  np.max(savgol_filter((MG1/ np.sum(MG1)),25,3)))
+    max_val_int = int(max_val*1000) +1
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    ax.plot(theta, savgol_filter((G1S / G1S.max()),25,3))
-    ax.set_rmax(2)
-    ax.set_rticks([0.5, 1])  # Less radial ticks
+    #ax.plot(theta, savgol_filter((G1S / G1S.max()),25,3), color='blue',linewidth=1.5)
+    ax.plot(theta, savgol_filter((G1S / np.sum(G1S)),25,3), color='blue',linewidth=1.5)
+    ax.set_rmax(max_val_int/1000)
+    ticks_array = np.array(range(max_val_int+1))/1000
+    #ax.set_rticks([0.001, 0.002])  # Less radial ticks
+    ax.set_rticks(ticks_array)  # Less radial ticks
     ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
     ax.grid(True)
+    plt.tick_params(labelsize=16)
 
     ax.set_title(("Normalized sum of genes related different phases- " +str(title)), va='bottom')
 
-    ax.plot(theta, savgol_filter((S/ S.max()),25,3))
-    ax.plot(theta, savgol_filter((G2 / G2.max()),25,3))
-    ax.plot(theta, savgol_filter((G2M / G2M.max()),25,3))
-    ax.plot(theta, savgol_filter((MG1 / MG1.max()),25,3))
-    ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"])
+    #ax.plot(theta, savgol_filter((S/ S.max()),25,3),color='orange' ,linewidth=1.5)
+    #ax.plot(theta, savgol_filter((G2 / G2.max()),25,3), color='green',linewidth=1.5)
+    #ax.plot(theta, savgol_filter((G2M / G2M.max()),25,3), color='red' ,linewidth=1.5)
+    #ax.plot(theta, savgol_filter((MG1 / MG1.max()),25,3) , color='purple',linewidth=1.5)
+
+    ax.plot(theta, savgol_filter((S/ np.sum(S)),25,3),color='orange' ,linewidth=1.5)
+    ax.plot(theta, savgol_filter((G2 / np.sum(G2)),25,3), color='green',linewidth=1.5)
+    ax.plot(theta, savgol_filter((G2M / np.sum(G2M)),25,3), color='red' ,linewidth=1.5)
+    ax.plot(theta, savgol_filter((MG1 / np.sum(MG1)),25,3) , color='purple',linewidth=1.5)
+
+    ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"], fontsize=15 , loc = 'center left', bbox_to_anchor = (1.2, 0.5))
+    ax.scatter(circular_mean(theta,MG1 / np.sum(MG1))[0], max_val_int/1000,color='purple' ,  marker='*')#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G2M / np.sum(G2M))[0], max_val_int/1000,color='red' ,  marker='*')#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G2/np.sum(G2))[0], max_val_int/1000,color='green' ,  marker='*')#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G1S / np.sum(G1S))[0], max_val_int/1000,color='blue', marker='*')#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,S/ np.sum(S))[0], max_val_int/1000,color='orange', marker='*')#, color='r' , label='Mean')
     plt.show()
+    print("Circular mean and variance, G1S" + str(circular_mean(theta,G1S / np.sum(G1S))))
+    print("Circular mean and variance, S" + str(circular_mean(theta,S/ np.sum(S))))
+    print("Circular mean and variance, G2" + str(circular_mean(theta,G2/np.sum(G2))))
+    print("Circular mean and variance, G2M" + str(circular_mean(theta,G2M / np.sum(G2M))))
+    print("Circular mean and variance, MG1" + str(circular_mean(theta,MG1 / np.sum(MG1))))
     pass
+
+
+def circular_mean(angles, weights=None):
+    #https://stackoverflow.com/questions/52856232/scipy-circular-variance
+    # https://en.wikipedia.org/wiki/Circular_mean
+    if weights is None:
+        weights = np.ones(len(angles))
+
+    vectors = [[w * np.cos(a), w * np.sin(a)] for a, w in zip(angles, weights)]
+
+    vector = np.sum(vectors, axis=0) / np.sum(weights)
+
+    x, y = vector
+
+    angle_mean = np.arctan2(y, x)
+    angle_variance = 1. - np.linalg.norm(vector)  # x*2+y*2 = hypot(x,y)
+
+    return angle_mean, angle_variance
 
 

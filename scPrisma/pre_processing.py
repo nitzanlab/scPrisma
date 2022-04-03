@@ -17,15 +17,31 @@ from spectrum_gen import *
 
 
 def cell_normalization(V):
+    '''
+    Rows L2 normalizations
+    :param V: gene expression matrix
+    :return: normalized gene expression matrix
+    '''
     V = normalize(V, axis=1, norm='l2')
     return V
 
 
 def gene_normalization(V):
+    '''
+    Columns L2 normalizations
+    :param V: gene expression matrix
+    :return: normalized gene expression matrix
+    '''
     V = normalize(V, axis=0, norm='l2')
     return V
 
 def loss_alpha(alpha, *args):
+    '''
+    loss function for optimizing the alpha parameter (cyclic signal)
+    :param alpha: current parameter for spectral calculation
+    :param args: current spectrum
+    :return: loss
+    '''
     e2 = args[0]
     eigen_values = generate_eigenvalues_circulant(len(e2),alpha)
     eigen_values = np.sort(abs(eigen_values))[::-1]
@@ -34,6 +50,12 @@ def loss_alpha(alpha, *args):
 
 
 def loss_alpha_linear(alpha, *args):
+    '''
+    loss function for optimizing the alpha parameter (linear signal)
+    :param alpha: current parameter for spectral calculation
+    :param args: current spectrum
+    :return: loss
+    '''
     e2 = args[0]
     eigen_values = get_pseudo_eigenvalues(alpha, len(e2), len(e2))
     eigen_values = np.array(eigen_values)
@@ -43,6 +65,11 @@ def loss_alpha_linear(alpha, *args):
 
 
 def loss_alpha_p(alpha, *args):
+    '''
+    :param alpha:
+    :param args:
+    :return:
+    '''
     e2 = args[0]
     p= args[1]
     eigen_values = generate_eigenvalues_circulant(len(e2),alpha)

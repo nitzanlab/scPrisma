@@ -178,17 +178,19 @@ def ranged_pca_2d(V , color,title="PCA Plot" , dis_colorbar=False):
     ax = fig.add_subplot()
     sc = ax.scatter(result['PCA0'], result['PCA1'],  s=15 , c=color)
     if not(dis_colorbar):
-        plt.colorbar(sc)
+        cbar = plt.colorbar(sc)
+        for t in cbar.ax.get_yticklabels():
+            t.set_fontsize(16)
     plt.title(title)
     # make simple, bare axis lines through space:
     xAxisLine = ((min(result['PCA0']), max(result['PCA0'])), (0, 0), (0,0))
     ax.plot(xAxisLine[0], xAxisLine[1], xAxisLine[2], 'r')
     yAxisLine = ((0, 0), (min(result['PCA1']), max(result['PCA1'])), (0,0))
     ax.plot(yAxisLine[0], yAxisLine[1], yAxisLine[2], 'r')
-
+    plt.tick_params(labelsize=16)
     # label the axes
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
+    ax.set_xlabel("PC1", fontsize=16)
+    ax.set_ylabel("PC2" , fontsize=16)
     plt.show()
     pass
 
@@ -392,8 +394,8 @@ def plt_mean_gene(cluster, gene, up_lim=0.6, down_lim=-0.05):
     plt.plot(ct_list, e_array, 'bo', color='b')  # ct_list, dbp_array, 'k')
     plt.ylim([down_lim, up_lim])
     plt.title("Mean "+ gene + " expression on raw " + cluster + " data")
-    plt.ylabel("Gene expression")
-    plt.xlabel("Circadian time")
+    plt.ylabel("Gene expression", fontsize=14)
+    plt.xlabel("Circadian time" , fontsize=14)
     plt.show()
     for i, ct in enumerate(ct_list):
         adata_nr = (adata_en[adata_en.obs['CT'].isin([ct])])
@@ -403,8 +405,8 @@ def plt_mean_gene(cluster, gene, up_lim=0.6, down_lim=-0.05):
     plt.plot(ct_list, e_array, 'k')
     plt.plot(ct_list, e_array, 'bo', color='r')  # ct_list, dbp_array, 'k')
     plt.title("Mean "+ gene + " expression on enhanced " + cluster + " data")
-    plt.ylabel("Gene expression")
-    plt.xlabel("Circadian time")
+    plt.ylabel("Gene expression", fontsize=14)
+    plt.xlabel("Circadian time" , fontsize=14)
     plt.ylim([down_lim, up_lim])
     plt.show()
     for i, ct in enumerate(ct_list):
@@ -415,8 +417,8 @@ def plt_mean_gene(cluster, gene, up_lim=0.6, down_lim=-0.05):
     plt.plot(ct_list, e_array, 'k')
     plt.plot(ct_list, e_array, 'bo', color='g')  # ct_list, dbp_array, 'k')
     plt.title("Mean "+ gene + " expression on filtered " + cluster + " data")
-    plt.ylabel("Gene expression")
-    plt.xlabel("Circadian time")
+    plt.ylabel("Gene expression", fontsize=14)
+    plt.xlabel("Circadian time", fontsize=14)
     plt.ylim([down_lim, up_lim])
     plt.show()
     pass
@@ -425,7 +427,10 @@ def plot_covariance_matrix(A,title):
     fig = plt.figure()
     ax = fig.add_subplot()
     ax1 = ax.imshow(A.dot(A.T))
-    plt.colorbar(ax1)
+    cbar = plt.colorbar(ax1)
+    for t in cbar.ax.get_yticklabels():
+        t.set_fontsize(16)
+    plt.tick_params(labelsize=16)
     plt.title(title)
     plt.show()
     pass
@@ -436,10 +441,11 @@ def plot_gene_list(adata, gene_list, color1='black', color2='r', title=''):
             plt.plot(range(adata.X.shape[0]), adata[:, i].X, label=i, color=color1)
             plt.plot(range(adata.X.shape[0]), savgol_filter(adata[:, i].X[:, 0], 25, 3), label=("Smoothed " + i),
                      color=color2)
-            plt.legend()  # [i,("Smoothed " +i)]
+            #plt.legend(fontsize=16)  # [i,("Smoothed " +i)]
             plt.title(i + " gene expression as a function of cell order- " + str(title))
-            plt.xlabel("cell location at gene expression matrix")
-            plt.ylabel("gene expression")
+            plt.xlabel("cell location at expression matrix" , fontsize=16)
+            plt.ylabel(i+ " expression",fontsize=16)
+            plt.tick_params(labelsize=16)
             plt.show()
         except:
             print(1)
@@ -476,8 +482,10 @@ def plt_mean_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", color
     plt.title("Mean " + gene + " expression on " + title + " as a function of layer")
     plt.ylabel("Gene expression")
     plt.xlabel("Layer")
+    plt.tick_params(labelsize=14)
     plt.show()
     sc.tl.pca(adata)
+    plt.tick_params(labelsize=14)
     sc.pl.pca_scatter(adata, color=gene, title=("PCA of " + title + " painted by " + str(gene)))
 
     pass
@@ -552,6 +560,10 @@ def plt_mean_heatmap_gene_liver(adata, adata_cyclic_filtered , adata_cyclic_en,a
     df = pd.DataFrame(data, index=
                 ['Raw data','Cyclic filtered','Cyclic enhanced','Linear filtered','Linear enhanced'], columns=['CT0','CT6','CT12','CT18'])
     ax = sns.heatmap(df, cmap='rocket_r').set(title= gene + " expression as a function of sampling CT")
+    plt.tick_params(labelsize=14)
+    ax.set_xlabel('Circadian timepoint', fontsize=14)
+
+    #sns.set(font_scale=1.5)
     #ax.set_xlabel('Circadian timepoint')
     plt.show()
 
@@ -563,7 +575,7 @@ def plt_mean_heatmap_gene_liver(adata, adata_cyclic_filtered , adata_cyclic_en,a
     df = pd.DataFrame(data, index=
                 ['Raw data','Cyclic filtered','Cyclic enhanced','Linear filtered','Linear enhanced'], columns=range(8))
     ax = sns.heatmap(df , cmap='rocket_r').set(title= gene + " expression as a function of layer")
-    #ax.set_xlabel('Zonation layer')
+    ax.set_xlabel('Zonation layer', fontsize=14)
     plt.show()
 
     pass
