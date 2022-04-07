@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 import scipy.signal
-from Bio.Affy import CelFile
 from analysis import *
 from algorithms import *
 from pre_processing import *
@@ -613,7 +612,6 @@ def chlam_genes(adata):
     pass
 
 def plot_diurnal_cycle_by_phase(adata, title = ""):
-
     phase_array = np.zeros((6,adata.X.shape[0]))
     df = pd.read_csv("Chlamydomonas/ch_genes.csv", header=None)
     new_header = df.iloc[1]
@@ -643,8 +641,12 @@ def plot_diurnal_cycle_by_phase(adata, title = ""):
 
 
 def score_single_type(path,cluster):
+    '''
+    Analyze single cell type of SCN data
+    :param path:  read Adata from file
+    :param cluster: cell type
+    '''
     adata = sc.read(filename=path)
-    #sc.pp.filter_genes_dispersion(adata,n_top_genes=7000)
     adata = scn_single_cluster(adata, str(cluster))
     genes = sc.pp.highly_variable_genes(adata,n_top_genes=7000,inplace=False)
     genes_values = genes.loc[genes['highly_variable']==False]
@@ -679,38 +681,12 @@ def score_single_type(path,cluster):
     pass
 
 
-
-
-def paint_HeLa_by_phase(adata_filtered,adata_unfiltered):
-    cyclic_by_phase = pd.read_csv("cyclic_by_phase.csv")
-    df = cyclic_by_phase["G1.S"]
-    list_of_genes=[]
-    list_a = df.values.tolist()
-    for a in list_a:
-      list_of_genes.append(a)
-    G1S , G1S_F = score_list_of_genes(cyclic_by_phase=cyclic_by_phase , phase="G1.S", filtered=adata_filtered,unfiltered=bdata)
-    S , S_F = score_list_of_genes(cyclic_by_phase=cyclic_by_phase , phase="S", filtered=adata_filtered,unfiltered=bdata)
-    G2 , G2_F = score_list_of_genes(cyclic_by_phase=cyclic_by_phase , phase="G2", filtered=adata_filtered,unfiltered=bdata)
-    G2M , G2M_F = score_list_of_genes(cyclic_by_phase=cyclic_by_phase , phase="G2.M", filtered=adata_filtered,unfiltered=bdata)
-    MG1 , MG1_F = score_list_of_genes(cyclic_by_phase=cyclic_by_phase , phase="M.G1", filtered=adata_filtered,unfiltered=bdata)
-    plt.plot((range((adata_filtered.X).shape[0])),G1S_F)
-    plt.plot((range((adata_filtered.X).shape[0])),S_F)
-    plt.plot((range((adata_filtered.X).shape[0])),G2_F)
-    plt.plot((range((adata_filtered.X).shape[0])),G2M_F)
-    plt.plot((range((adata_filtered.X).shape[0])),MG1_F)
-    plt.legend(["G1.S","S","G2","G2.M","M.G1"])
-    plt.show()
-    ranged_pca_2d((adata_filtered.X),G1S_F,title="G1S_F PCA filtered")
-    ranged_pca_2d((adata_filtered.X),S_F, title="S_F PCA filtered")
-    ranged_pca_2d((adata_filtered.X),G2_F,title="G2_F PCA filtered")
-    ranged_pca_2d((adata_filtered.X),G2M_F,title="G2M_F PCA filtered")
-    ranged_pca_2d((adata_filtered.X),MG1_F,title="MG1_F PCA filtered")
-    plot_cell_cycle_by_phase(adata_filtered, adata_unfiltered)
-    pass
-
-
-
 def sort_data_linear(adata):
+    '''
+    Sort adata according to liver lobule labels
+    :param adata: AnnData object of liver lobule data
+    :return:
+    '''
     adata = shuffle_adata(adata)
     layers = [[] for i in range(8)]
     obs = adata.obs
@@ -722,7 +698,14 @@ def sort_data_linear(adata):
     return sorted_data
 
 def sort_data_crit(adata,crit,crit_list):
-    adata = shuffle_adata(adata)
+    '''
+    Sort the cells of an AnnData object according to a field (obs)
+    :param adata: AnnData to be sorted
+    :param crit: 'obs' field
+    :param crit_list: list of 'obs' possible values, sorted according to the desired ordering (e.g ['0','6','12','18])
+    :return:
+    '''
+    adata = shuffle_adata(adata) #for avoiding batch effects
     layers = [[] for i in range(len(crit_list))]
     obs = adata.obs
     for i, row in obs.iterrows():
@@ -736,6 +719,11 @@ def sort_data_crit(adata,crit,crit_list):
 
 
 def all_plots_hela(adata,title):
+    '''
+    Plot all the figures that are related to the HeLa cells section
+    :param adata:  AnnData of HeLa cells
+    :param title: title for figures
+    '''
     ranged_pca_2d(adata.X,color=range(adata.X.shape[0]),title=("HeLa cells PCA, painted by cell location in the matrix"))
     cyclic_by_phase = pd.read_csv("data/cyclic_by_phase.csv")
     G1S = score_list_of_genes_single_adata(cyclic_by_phase=cyclic_by_phase, phase="G1.S", adata=adata)
@@ -762,40 +750,48 @@ def all_plots_hela(adata,title):
                   np.max(savgol_filter((MG1/ np.sum(MG1)),25,3)))
     max_val_int = int(max_val*1000) +1
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    #ax.plot(theta, savgol_filter((G1S / G1S.max()),25,3), color='blue',linewidth=1.5)
+    # smoothed polar plot of phases vectors, each one normalized to 1
     ax.plot(theta, savgol_filter((G1S / np.sum(G1S)),25,3), color='blue',linewidth=1.5)
     ax.set_rmax(max_val_int/1000)
-    ticks_array = np.array(range(max_val_int+1))/1000
-    #ax.set_rticks([0.001, 0.002])  # Less radial ticks
-    ax.set_rticks(ticks_array)  # Less radial ticks
+    #ticks_array = np.array(range(max_val_int+1))/1000
+    #ax.set_rticks(ticks_array)  # Less radial ticks
     ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
-    ax.grid(True)
-    plt.tick_params(labelsize=16)
+    #ax.grid(True)
+    ax.set_yticklabels([])
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
 
+    #for r_label in ax.get_yticklabels():
+    #    r_label.set_text('')
+    ax.yaxis.grid(False)
+
+    plt.tick_params(labelsize=22)
     ax.set_title(("Normalized sum of genes related different phases- " +str(title)), va='bottom')
-
-    #ax.plot(theta, savgol_filter((S/ S.max()),25,3),color='orange' ,linewidth=1.5)
-    #ax.plot(theta, savgol_filter((G2 / G2.max()),25,3), color='green',linewidth=1.5)
-    #ax.plot(theta, savgol_filter((G2M / G2M.max()),25,3), color='red' ,linewidth=1.5)
-    #ax.plot(theta, savgol_filter((MG1 / MG1.max()),25,3) , color='purple',linewidth=1.5)
-
     ax.plot(theta, savgol_filter((S/ np.sum(S)),25,3),color='orange' ,linewidth=1.5)
     ax.plot(theta, savgol_filter((G2 / np.sum(G2)),25,3), color='green',linewidth=1.5)
     ax.plot(theta, savgol_filter((G2M / np.sum(G2M)),25,3), color='red' ,linewidth=1.5)
     ax.plot(theta, savgol_filter((MG1 / np.sum(MG1)),25,3) , color='purple',linewidth=1.5)
-
-    ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"], fontsize=15 , loc = 'center left', bbox_to_anchor = (1.2, 0.5))
-    ax.scatter(circular_mean(theta,MG1 / np.sum(MG1))[0], max_val_int/1000,color='purple' ,  marker='*')#, color='r' , label='Mean')
-    ax.scatter(circular_mean(theta,G2M / np.sum(G2M))[0], max_val_int/1000,color='red' ,  marker='*')#, color='r' , label='Mean')
-    ax.scatter(circular_mean(theta,G2/np.sum(G2))[0], max_val_int/1000,color='green' ,  marker='*')#, color='r' , label='Mean')
-    ax.scatter(circular_mean(theta,G1S / np.sum(G1S))[0], max_val_int/1000,color='blue', marker='*')#, color='r' , label='Mean')
-    ax.scatter(circular_mean(theta,S/ np.sum(S))[0], max_val_int/1000,color='orange', marker='*')#, color='r' , label='Mean')
+    ax.legend(["G1.S", "S", "G2", "G2.M", "M.G1"], fontsize=22 , loc = 'center left', bbox_to_anchor = (1.2, 0.5))
+    #  circular mean of each phase
+    ax.scatter(circular_mean(theta,MG1 / np.sum(MG1))[0], max_val_int/1000,color='purple' ,  marker='*' , s =150.0)#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G2M / np.sum(G2M))[0], max_val_int/1000,color='red' ,  marker='*', s=150.0)#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G2/np.sum(G2))[0], max_val_int/1000,color='green' ,  marker='*', s=150.0)#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,G1S / np.sum(G1S))[0], max_val_int/1000,color='blue', marker='*', s=150.0)#, color='r' , label='Mean')
+    ax.scatter(circular_mean(theta,S/ np.sum(S))[0], max_val_int/1000,color='orange', marker='*', s=150.0)#, color='r' , label='Mean')
     plt.show()
-    print("Circular mean and variance, G1S" + str(circular_mean(theta,G1S / np.sum(G1S))))
-    print("Circular mean and variance, S" + str(circular_mean(theta,S/ np.sum(S))))
-    print("Circular mean and variance, G2" + str(circular_mean(theta,G2/np.sum(G2))))
-    print("Circular mean and variance, G2M" + str(circular_mean(theta,G2M / np.sum(G2M))))
-    print("Circular mean and variance, MG1" + str(circular_mean(theta,MG1 / np.sum(MG1))))
+    g1s_circular_stats = circular_mean(theta,G1S / np.sum(G1S))
+    s_circular_stats = circular_mean(theta,S / np.sum(S))
+    g2_circular_stats = circular_mean(theta,G2 / np.sum(G2))
+    g2m_circular_stats = circular_mean(theta,G2M / np.sum(G2M))
+    mg1_circular_stats = circular_mean(theta,MG1 / np.sum(MG1))
+
+    print("Circular mean and variance, G1S" + str(g1s_circular_stats))
+    print("Circular mean and variance, S" + str(s_circular_stats))
+    print("Circular mean and variance, G2" + str(g2_circular_stats))
+    print("Circular mean and variance, G2M" + str(g2m_circular_stats))
+    print("Circular mean and variance, MG1" + str(mg1_circular_stats))
+    print("Mean circular variance= " +str((g1s_circular_stats[1]+s_circular_stats[1]+g2_circular_stats[1
+    ] + g2m_circular_stats[1] +mg1_circular_stats[1] )/5))
     pass
 
 
