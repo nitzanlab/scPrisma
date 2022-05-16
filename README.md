@@ -24,7 +24,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 ---
 
 ### Built With
-* [Python](https://www.python.org/) - 3.7 , Numpy and pandas libraries. 
+* [Python](https://www.python.org/) - 3.7 , Numpy and Pandas libraries. it is recommended to use also Scanpy library.
 
 
 
@@ -97,4 +97,3 @@ As long as we increase the regularization parameter we will filter out <b><u>mor
 <!-- CONTACT -->
 ## Contact
 Jonathan Karin - jonathan.karin [at ] mail.huji.ac.il
-....
