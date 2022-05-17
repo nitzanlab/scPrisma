@@ -15,6 +15,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
   * [Reconstruction](#reconstruction)
   * [Filtering workflow](#filtering-workflow)
   * [Enhancement workflow](#enhancement-workflow)
+* [Tutorials](#tutorials)
 * [Contact](#contact)
 
 
@@ -93,6 +94,11 @@ adata.X = adata.X * F
 As long as we increase the regularization parameter we will filter out <b><u>more</u></b> information.
 
 
+<!-- TUTORIALS -->
+## Tutorials
+[De-novo reonstruction, cyclic enhancement and filtering- HeLa S3 cells](https://github.com/nitzanlab/scPrisma/blob/main/tutorials/tutorial_de_novo_reconstruction.ipynb)
+<br />
+[Reonstruction from prior knowledge, cyclic enhancement and filtering, linear enhancment and filtering- Mouse liver lobules](https://github.com/nitzanlab/scPrisma/blob/main/tutorials/tutorial_prior_knowledge_linear_and_cyclic.ipynb)
 
 <!-- CONTACT -->
 ## Contact
