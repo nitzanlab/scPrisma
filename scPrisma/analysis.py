@@ -214,3 +214,20 @@ def hela_gene_inference(adata, number_of_genes):
     #print(" AUC-ROC: " + str(calculate_roc_auc(res, y_true)))
     return calculate_roc_auc(res, y_true)
 
+
+def inner_product_genes_scn_adata(adata_raw, adata_en, gene1,gene2):
+    gene1_raw = np.array(adata_raw[:,gene1].X[:,0])
+    gene2_raw = np.array(adata_raw[:,gene2].X[:,0])
+    gene1_en = np.array(adata_en[:,gene1].X[:,0])
+    gene2_en = np.array(adata_en[:,gene2].X[:,0])
+    gene1_raw = (gene1_raw - gene1_raw.mean())# / gene1_raw.std()
+    gene2_raw = (gene2_raw - gene2_raw.mean())# / gene2_raw.std()
+    gene1_raw = gene1_raw/ np.linalg.norm(gene1_raw)
+    gene2_raw = gene2_raw/ np.linalg.norm(gene2_raw)
+    gene1_en = (gene1_en - gene1_en.mean()) #/ gene1_en.std()
+    gene2_en = (gene2_en - gene2_en.mean()) #/ gene2_en.std()
+    gene1_en = gene1_en/ np.linalg.norm(gene1_en)
+    gene2_en = gene2_en/ np.linalg.norm(gene2_en)
+    print("Enhanced inner product: " +str(gene1_en.dot(gene2_en)))
+    print("Raw inner product: " +str(gene1_raw.dot(gene2_raw)))
+    return gene1_en.dot(gene2_en), gene1_raw.dot(gene2_raw)

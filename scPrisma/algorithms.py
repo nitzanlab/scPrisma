@@ -29,7 +29,7 @@ def reconstruct_e(E_prob):
         res_array[i, item] = 1
     return res_array
 
-def ge_to_spectral_matrix(A):
+def ge_to_spectral_matrix(A , optimize_alpha=True):
     '''
     :param A: Gene expression matrix
     :return: Theoretic spectral matrix
@@ -37,10 +37,13 @@ def ge_to_spectral_matrix(A):
     n=A.shape[0]
     p = A.shape[1]
     min_np = min(n,p)
-    u, s, vh = np.linalg.svd(A)
-    for i in range(min_np):
-        s[i] *= s[i]
-    alpha = optimize_alpha_p(s, 15)
+    if optimize_alpha:
+        u, s, vh = np.linalg.svd(A)
+        for i in range(min_np):
+            s[i] *= s[i]
+        alpha = optimize_alpha_p(s, 15)
+    else:
+        alpha = np.exp(-2/p)
     V = generate_spectral_matrix(n=n, alpha=alpha)
     V = V[1:, :]
     return V
@@ -143,7 +146,6 @@ def G_matrix(A, E, VVT):
     E_cols = dim[1]
     assert A_rows == E_cols
 
-    #gradient = (2 * ((((V).dot(V.T)).dot(E)).dot(A)).dot(A.T))
     gradient = (2 * (((VVT).dot(E)).dot(A)).dot(A.T))
 
     return gradient
@@ -598,7 +600,7 @@ def enhancement_cyclic(A, regu=0.1, iterNum=300):
     F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum)
     return F
 
-def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
+def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7, optimize_alpha=True, line_search=True):
     ''' Filtering of cyclic signal
     :param A: Gene expression matrix (reordered according to cyclic ordering)
     :param regu: regularization coefficient
@@ -606,9 +608,12 @@ def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
     :return: filtering matrix
     '''
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A , optimize_alpha=optimize_alpha)
     print("starting filtering")
-    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum,verbosity=verbosity , error=error)
+    if line_search:
+        F = gradient_descent_full_line(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum,verbosity=verbosity , error=error)
+    else:
+        F = gradient_descent_full(A,np.ones(A.shape),V=V.T,regu=regu,epsilon=0.1,iterNum=iterNum)
     return F
 
 def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
