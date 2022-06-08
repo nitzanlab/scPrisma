@@ -4,7 +4,9 @@ from numpy import  random
 from numpy import linalg
 from scipy import sparse
 from pre_processing import *
+from numba import jit
 
+@jit(nopython=True, parallel=True)
 def generate_eigenvectors_circulant(n, alpha=0.9999):
     '''
     :param n: number of cells
@@ -27,7 +29,32 @@ def generate_eigenvectors_circulant(n, alpha=0.9999):
     return np.array(eigen_vectors) , np.array(eigen_values)
 
 
+
+@jit(nopython=True, parallel=True)
 def generate_spectral_matrix(n, alpha=0.99):
+    '''
+    :param n: number of cells
+    :param alpha: correlation between neighbors
+    :return: spectral matrix, each eigenvector is multiplied by the sqrt of the appropriate eigenvalue
+    '''
+    eigen_vectors = np.zeros((n,n))
+    for i in range(n):
+        v = np.zeros(n)
+        for k in range(n):
+            v[k] = math.sqrt(2 / n) * math.cos(math.pi * (((2 * (i) * (k)) / n) - 1 / 4))
+        eigen_vectors[i,:]=v
+    eigen_values = np.zeros(n)
+    for i in range(n):
+        for k in range(n):
+            if k < n / 2:
+                eigen_values[i] += (alpha ** k) * math.cos((2 * math.pi * i * k) / n)
+            else:
+                eigen_values[i] += (alpha ** (n-k)) * math.cos((2 * math.pi * i * k) / n)
+    for i in range(n):
+        eigen_vectors[i]*=np.sqrt(eigen_values[i])
+    return eigen_vectors
+
+def generate_spectral_matrix_tmp(n, alpha=0.99):
     '''
     :param n: number of cells
     :param alpha: correlation between neighbors
@@ -50,7 +77,7 @@ def generate_spectral_matrix(n, alpha=0.99):
         eigen_vectors[i]*=np.sqrt(eigen_values[i])
     return np.array(eigen_vectors)
 
-
+@jit(nopython=True, parallel=True)
 def generate_eigenvalues_circulant(n, alpha=1):
     '''
     :param n: number of cells
@@ -68,7 +95,7 @@ def generate_eigenvalues_circulant(n, alpha=1):
 
 
 
-
+@jit(nopython=True, parallel=True)
 def get_psuedo_vecs(alpha, ncells):
     theta_lst = get_theta_lst(ncells)
     mat = np.zeros((ncells, ncells))
@@ -79,18 +106,19 @@ def get_psuedo_vecs(alpha, ncells):
 
     return mat
 
-
+@jit(nopython=True, parallel=True)
 def get_pseudo_eigenvalues(alpha, n, m=1):
     theta_lst = [(j * math.pi) / (n + 1) for j in range(1, n+1)]
     vals = [rctp_func_short(theta, alpha) for theta in theta_lst]
     return vals
 
+@jit(nopython=True, parallel=True)
 def get_pseudo_eigenvalues_for_loss(n,alpha, m=1):
     theta_lst = [(j * math.pi) / (n + 1) for j in range(1, n+1)]
     vals = [rctp_func_short(theta, alpha) for theta in theta_lst]
     return vals
 
-
+@jit(nopython=True, parallel=True)
 def get_psuedo_data(ngenes, ncells, nchange=1):
     alpha = get_alpha(ngenes, nchange)
     psuedo_vecs = get_psuedo_vecs(alpha, ncells)
@@ -98,21 +126,21 @@ def get_psuedo_data(ngenes, ncells, nchange=1):
     psuedo_vecs = normalize(psuedo_vecs, axis=0, norm='l2')
     return psuedo_vecs, psuedo_vals
 
-
+@jit(nopython=True, parallel=True)
 def rctp_func(theta, alpha, m):
     return 1 + 2 * sum([alpha ** i * math.cos(i * theta)
                         for i in range(1, m + 1)], 0)
 
-
+@jit(nopython=True, parallel=True)
 def rctp_func_short(theta, alpha):
     return (1 - alpha ** 2) / \
            float(1 - 2 * alpha * math.cos(theta) + alpha ** 2)
 
-
+@jit(nopython=True, parallel=True)
 def get_theta_lst(ncells):
     return [(j * math.pi) / (ncells + 1) for j in range(1, ncells + 1)]
 
-
+@jit(nopython=True, parallel=True)
 def get_alpha(ngenes, nchange):
     return math.exp((-2 * nchange) / float(ngenes))
 

@@ -6,9 +6,16 @@ from scipy.optimize.linesearch import line_search
 
 from pre_processing import *
 from visualizations import *
-from sinkhorn_knopp import sinkhorn_knopp as skp
+from numba import jit
 
+@jit(nopython=True, parallel=True)
+def numba_diagonal(A):
+    d = np.zeros(A.shape[0])
+    for i in range(A.shape[0]):
+        d[i]=A[i,i]
+    return d
 
+@jit(nopython=True, parallel=True)
 def reconstruct_e(E_prob):
     '''
     Greedy algorithm to reconstruct permutation matrix from Bi-Stochastic matrix
@@ -63,6 +70,7 @@ def sga_reorder_rows_matrix(A, iterNum=300, batch_size=20):
     return E, E_recon
 
 
+@jit(nopython=True, parallel=True)
 def sga_matrix(A, E, V, iterNum=400, batch_size=20, lr=0.1):
     '''
     :param A: gene expression matrix
@@ -80,9 +88,6 @@ def sga_matrix(A, E, V, iterNum=400, batch_size=20, lr=0.1):
         if j % 25 == 0:
             print("Iteration number: " + str(j) + " function value= " + str(value))
             print("Iteration number: " + str(j))
-            plt.imshow(E)
-            plt.colorbar()
-            plt.show()
         epsilon_t *= 0.995
         A_tmp = A[:, np.random.randint(A.shape[1], size=batch_size)]
         value, grad = fAndG_matrix(A=A_tmp, E=E, V=V)
@@ -95,6 +100,7 @@ def sga_matrix(A, E, V, iterNum=400, batch_size=20, lr=0.1):
     return E
 
 
+@jit(nopython=True, parallel=True)
 def fAndG_matrix(A, E, V):
     '''
     Calculate the function value and the gradient of A matrix
@@ -103,29 +109,12 @@ def fAndG_matrix(A, E, V):
     :param V: spectral matrix
     :return: function value, gradient of E
     '''
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(E, np.ndarray)
-    dim = E.shape
-    assert len(dim) == 2
-    E_rows = dim[0]
-    E_cols = dim[1]
-    assert isinstance(V, np.ndarray)
-    dim = V.shape
-    assert len(dim) == 2
-    V_rows = dim[0]
-    V_cols = dim[1]
-    assert E_rows == V_rows
-    assert A_rows == E_cols
-
     functionValue = np.trace((((((V.T).dot(E)).dot(A)).dot(A.T)).dot(E.T)).dot(V))
     gradient = (2 * ((((V).dot(V.T)).dot(E)).dot(A)).dot(A.T))
 
     return functionValue, gradient
 
+@jit(nopython=True, parallel=True)
 def G_matrix(A, E, VVT):
     '''
     Calculate the gradient of A matrix
@@ -134,23 +123,10 @@ def G_matrix(A, E, VVT):
     :param V: spectral matrix
     :return: gradient of E
     '''
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(E, np.ndarray)
-    dim = E.shape
-    assert len(dim) == 2
-    E_rows = dim[0]
-    E_cols = dim[1]
-    assert A_rows == E_cols
-
     gradient = (2 * (((VVT).dot(E)).dot(A)).dot(A.T))
-
     return gradient
 
-
+@jit(nopython=True, parallel=True)
 def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, projection='BBS'):
     '''
     :param A: gene expression matrix
@@ -165,26 +141,24 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, p
     j = 0
     value = 0
     VVT = (V).dot(V.T) #for runtime optimization
-    if projection=='skp':
-        sk = skp.SinkhornKnopp()
     epsilon_t = lr
     step = np.zeros(E.shape)
     while (j < iterNum):
         if j % 25 == 0:
             value, grad = fAndG_matrix(A=A, E=E, V=V)
-            print("Iteration number: " + str(j) + " function value= " + str(value))
-        A_tmp = A[:, np.random.randint(A.shape[1], size=batch_size)]
+            print("Iteration number: ")
+            print(j)
+            print(" function value= ")
+            print(value)
+        A_tmp = A[:, np.random.randint(0,A.shape[1], batch_size)]
         grad = G_matrix(A=A_tmp, E=E, VVT=VVT)
         step = epsilon_t * grad + gama * step
         E = E + step
-        if projection=='skp':#skp
-            E = np.clip(E , a_max=1,a_min=0)
-            E = sk.fit(E)
-        else:
-            E = BBS(E)
+        E = BBS(E)
         j += 1
     return E
 
+@jit(nopython=True, parallel=True)
 def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gama=0.9,projection='BBS'):
     '''
     :param A: gene expression matrix
@@ -197,8 +171,6 @@ def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1
     :return: permutation matrix
     '''
     j = 0
-    if projection=='skp':
-        sk = skp.SinkhornKnopp()
     value = 0
     epsilon_t = lr
     step = np.zeros(E.shape)
@@ -212,10 +184,7 @@ def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1
         grad = grad
         step = epsilon_t * grad + gama * step
         E = E + step
-        if projection=='BBS':
-            E = BBS(E) * IN
-        else:
-            E = sk.fit(E) * IN
+        E = BBS(E) * IN
         j += 1
     return E
 
@@ -355,6 +324,7 @@ def filter_non_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1, verbosity=25)
     np.identity(D.shape[1])
     return (np.identity(D.shape[1]) - D)
 
+@jit(nopython=True, parallel=True)
 def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
     '''
     :param A: gene expression matrix
@@ -374,18 +344,17 @@ def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=4
         if j % 25 == 1:
             # value = (np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - (regu * np.linalg.norm((A).dot(D), 'fro')))
             val = np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
-            print("Iteration number: " + str(j) + "function value= " + str(val))
+            print("Iteration number: ")
+            print(j)
+            print( "function value= ")
+            print(val)
             #plot_diag(D)
             #im = plt.imshow(D)
             #plt.colorbar()
             #plt.show()
         epsilon_t *= 0.995
-        T = D.diagonal()
+        T = numba_diagonal(D)#.diagonal()
         grad = ATUUTA * T - regu * np.sign(D)
-        #grad += np.random.normal(0,0.001,grad.shape)
-        #val, grad = fAndG_fixed_filter(A=A, D=D, U=U, regu=regu)
-        #print(np.allclose(grad,grad1))
-        # grad = ATUUTA.dot(D) - (regu * np.sign(D))
         D = D + ascent* epsilon_t * grad
         D = diag_projection(D)
         # print("Iteration number: " + str(j) + " grad value= " + str(grad))
@@ -397,9 +366,12 @@ def gradient_ascent_filter_matrix(A, D, U, ascent=1, lr=0.1, regu=0.1, iterNum=4
 #def loss_filter_genes(A,U,D,regu):
 #    return np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
 
+@jit(nopython=True, parallel=True)
 def loss_filter_genes(ATU,D,regu):
-    return np.trace((ATU.T * D.diagonal() * D.diagonal()).dot(ATU)) - regu*np.linalg.norm(D,1)
+    D_diag = numba_diagonal(D)
+    return np.trace((ATU.T * D_diag * D_diag).dot(ATU)) - regu*np.linalg.norm(D,1)
 
+@jit(nopython=True, parallel=True)
 def gradient_descent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_evals = 250, verbosity = float('inf')):
     '''
     :param A: ene expression matrix
@@ -419,20 +391,24 @@ def gradient_descent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_ev
     w = diag_projection(w)
 
     grad = ATUUTA * w - regu * np.sign(w)
-    G = grad.diagonal()
+    G = numba_diagonal(grad)#.diagonal()
     grad = np.diag(G)
     alpha = 1 / np.linalg.norm(grad)
     while evals < max_evals and np.linalg.norm(grad) > 1e-07:
         evals += 1
         if evals % verbosity == 0:
-            print(str(evals) + 'th Iteration    Loss :: ' + str(loss) + ' gradient :: ' +  str(np.linalg.norm(grad)))
+            print((evals))
+            print('th Iteration    Loss :: ')
+            print((loss))
+            print(' gradient :: ')
+            print((np.linalg.norm(grad)))
         gTg  = np.linalg.norm(grad)
         gTg = gTg*gTg
         new_w = w - alpha * grad
         new_loss = loss_filter_genes(ATU, new_w, regu)
         new_w = diag_projection(new_w)
         new_grad = ATUUTA * new_w - regu * np.sign(new_w)
-        G = new_grad.diagonal()
+        G = numba_diagonal(new_grad)#.diagonal()
         new_grad = np.diag(G)
         while new_loss > loss - gamma * alpha * gTg:
             alpha = ((alpha ** 2) * gTg) / (2 * (new_loss + alpha * gTg - loss))
@@ -440,7 +416,7 @@ def gradient_descent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_ev
             new_loss = loss_filter_genes(ATU, new_w, regu)
             new_w = diag_projection(new_w)
             new_grad = ATUUTA * new_w - regu * np.sign(new_w)
-            G = new_grad.diagonal()
+            G = numba_diagonal(new_grad)#.diagonal()
             new_grad = np.diag(G)
 
         alpha = min(1, 2 * (loss - new_loss) / gTg)
@@ -449,56 +425,21 @@ def gradient_descent_filter_matrix_line(A, D, U, regu=0.1, gamma = 1e-04, max_ev
         w = new_w
     return w
 
+@jit(nopython=True, parallel=True)
 def fAndG_filter_matrix(A, D, U, alpha):
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(D, np.ndarray)
-    dim = D.shape
-    assert len(dim) == 2
-    D_rows = dim[0]
-    assert isinstance(U, np.ndarray)
-    dim = U.shape
-    assert len(dim) == 2
-    U_rows = dim[0]
-    if isinstance(alpha, np.ndarray):
-        dim = alpha.shape
-        assert dim == (1,)
-    assert U_rows == A_rows
-    assert D_rows == A_cols
-
     functionValue = (np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - (alpha * np.sum(np.abs(D))))
     gradient = ((2 * ((((A.T).dot(U)).dot(U.T)).dot(A)).dot(D)) - (alpha * np.sign(D)))
     return gradient, functionValue
 
-
+@jit(nopython=True, parallel=True)
 def fAndG_fixed_filter(A, D, U, regu):
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(D, np.ndarray)
-    dim = D.shape
-    assert len(dim) == 2
-    D_rows = dim[0]
-    D_cols = dim[1]
-    assert isinstance(U, np.ndarray)
-    dim = U.shape
-    assert len(dim) == 2
-    U_rows = dim[0]
-    assert A_rows == U_rows
-    assert D_rows == A_cols
-
     t_0 = np.linalg.norm((A).dot(D), 'fro')
     functionValue = np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu * t_0
     gradient = (2 * ((((A.T).dot(U)).dot(U.T)).dot(A)).dot(D)) - regu*np.sign(D)#((1 / t_0) * ((A.T).dot(A)).dot(D))
 
     return functionValue, gradient
 
-
+@jit(nopython=True, parallel=True)
 def gradient_ascent_filter(A, D, eigenvectors_list, eigenvalues_list, epsilon=0.1, regu=0.1, iterNum=400):
     '''
     :param A: Gene expression matrix
@@ -517,11 +458,6 @@ def gradient_ascent_filter(A, D, eigenvectors_list, eigenvalues_list, epsilon=0.
         value = 0
         if j % 25 == 0:
             print("Iteration number: " + str(j))
-            # print(D.diagonal())
-            plot_diag(D)
-            plt.imshow(D)
-            plt.colorbar()
-            plt.show()
         epsilon_t *= 0.995
         grad = np.zeros(D.shape)
         for i, v in enumerate(eigenvectors_list):
@@ -534,42 +470,19 @@ def gradient_ascent_filter(A, D, eigenvectors_list, eigenvalues_list, epsilon=0.
         j += 1
     return D
 
-
+@jit(nopython=True)
 def diag_projection(D):
-    T = D.diagonal()
-    # T[T < 0] = 0
-    # T = T.clip(0,D.shape[0])
-    # T = T#*((np.sum(T)/D.shape[0]))
-    T = T.clip(0, 1)
+    T = numba_diagonal(D)#.diagonal()
+    T = numba_vec_clip(T,len(T),0,1)
     return np.diag(T)
 
 
+@jit(nopython=True, parallel=True)
 def fAndG_regu(A, E, alpha, x):
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(E, np.ndarray)
-    dim = E.shape
-    assert len(dim) == 2
-    E_rows = dim[0]
-    E_cols = dim[1]
-    if isinstance(alpha, np.ndarray):
-        dim = alpha.shape
-        assert dim == (1,)
-    assert isinstance(x, np.ndarray)
-    dim = x.shape
-    assert len(dim) == 1
-    x_rows = dim[0]
-    assert A_rows == x_rows
-    assert E_rows == A_cols
-
     t_0 = (A.T).dot(x)
     t_1 = np.linalg.norm(E, 'fro')
     functionValue = ((x).dot((A).dot((E).dot((E.T).dot(t_0)))) - (alpha * t_1))
     gradient = ((2 * np.multiply.outer(t_0, ((x).dot(A)).dot(E))) - ((alpha / t_1) * E))
-
     return functionValue, gradient
 
 
@@ -652,29 +565,22 @@ def filter_non_cyclic_full_reverse(A, regu=0.1, iterNum=300):
     F = np.ones(F.shape)-F
     return F
 
+@jit(nopython=True, parallel=True)
 def gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
-    print(A.shape)
-    print(F.shape)
-    print(V.shape)
     j = 0
     epsilon_t = epsilon
     while (j < iterNum):
         value = 0
         if j % 50 == 1:
             print("Iteration number: " + str(j))
-            plt.imshow(F)
-            plt.colorbar()
-            plt.show()
         epsilon_t *= 0.995
         tmp_value, grad = fAndG_full(A=A, B=F, V=V, alpha=regu)
         F = F + epsilon_t * grad
-        F = F.clip(min=0, max=1)
+        F = numba_clip(F,F.shape[0],F.shape[1],0,1)
         j += 1
-    plt.imshow(F)
-    plt.colorbar()
-    plt.show()
     return F
 
+@jit(nopython=True, parallel=True)
 def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm='L1'):
     '''
     :param A: gene expression matrix
@@ -694,17 +600,18 @@ def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , re
     while (j < iterNum):
         if j % 25 == 1:
             value, grad = fAndG_full_acc(A=A, B=F, V=V, VVT=VVT, alpha=regu, regu_norm=regu_norm)
-            print("Iteration number: " + str(j) , "function value: " +str(value) )
+            print("Iteration number: ")
+            print((j))
+            print("function value: ")
+            print((value) )
         epsilon_t *= 0.995
         grad = G_full(A=A, B=F, V=V, alpha=regu , regu_norm = regu_norm)
         F = F + epsilon_t * (grad +np.random.normal(0,0.01,grad.shape))
-        F = F.clip(min=0, max=1)
+        F = numba_clip(F,F.shape[0],F.shape[1],0,1)
         j += 1
-    #plt.imshow(F)
-    #plt.colorbar()
-    #plt.show()
     return F
 
+@jit(nopython=True, parallel=True)
 def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1'):
     print(A.shape)
     print(F.shape)
@@ -714,21 +621,15 @@ def gradient_descent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm ='
     while j < iterNum:
         if j % 100 == 1:
             print("Iteration number: " + str(j))
-            plt.imshow(F)
-            plt.colorbar()
-            plt.show()
         epsilon_t *= 0.995
         tmp_value, grad = fAndG_full(A=A, B=F, V=V, alpha=regu, regu_norm=regu_norm)
         F = F - epsilon_t * grad
-        F = F.clip(min=0, max=1)
+        F = numba_clip(F,F.shape[0],F.shape[1],0,1)
         j += 1
-    plt.imshow(F)
-    plt.colorbar()
-    plt.show()
     return F
 
 
-
+@jit(nopython=True, parallel=True)
 def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04,
                                max_evals = 250,
                                verbosity = float('inf'),error=1e-07, regu_norm='L1'):
@@ -751,20 +652,25 @@ def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04,
     #alpha=0.1
     prev_w = np.zeros(w.shape)
     while evals < max_evals and np.linalg.norm(w-prev_w) > error:
-        prev_w=copy.deepcopy(w)
+        prev_w=np.copy(w)
         evals += 1
         if evals % verbosity == 0:
-            print(str(evals) + 'th Iteration    Loss :: ' + str(loss) + ' gradient :: ' +  str(np.linalg.norm(grad)))
+            print(str(evals))
+            print('th Iteration    Loss :: ')
+            print((loss))
+            #+ ' gradient :: ' +  str(np.linalg.norm(grad)))
         gTg  = np.linalg.norm(grad)
         gTg = gTg*gTg
         new_w = w - alpha * grad
-        new_w = new_w.clip(min=0, max=1)
+        new_w = numba_clip(new_w,new_w.shape[0],new_w.shape[1],0,1)
+        #new_w = new_w.clip(min=0, max=1)
         new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V,
                                             VVT=VVT,alpha=regu, regu_norm=regu_norm)
         while new_loss > loss - gamma * alpha * gTg:
             alpha = ((alpha ** 2) * gTg) / (2 * (new_loss + alpha * gTg - loss))
             new_w = w - alpha * grad
-            new_w = new_w.clip(min=0, max=1)
+            new_w = numba_clip(new_w, new_w.shape[0], new_w.shape[1], 0, 1)
+            #new_w = new_w.clip(min=0, max=1)
             new_loss, new_grad = fAndG_full_acc(A=A, B=new_w, V=V,VVT=VVT,
                                                 alpha=regu, regu_norm=regu_norm)
         alpha = min(1, 2 * (loss - new_loss) / gTg)
@@ -773,25 +679,14 @@ def gradient_descent_full_line(A,F,V,regu, gamma = 1e-04,
         w = new_w
     return w
 
-
+@jit(nopython=True, parallel=True)
 def fAndG_filtering_boosted(A, V, alpha_matrix):
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(V, np.ndarray)
-    dim = V.shape
-    assert len(dim) == 2
-    V_rows = dim[0]
-    V_cols = dim[1]
-    assert A_rows == V_rows
     functionValue = np.trace((((V.T).dot(A)).dot(A.T)).dot(V)) - np.linalg.norm(alpha_matrix*A,1)
     gradient = (2 * ((V).dot(V.T)).dot(A)) - alpha_matrix*np.sign(A)
     return functionValue, gradient
 
 
-
+@jit(nopython=True, parallel=True)
 def gradient_descent_full_line_boosted(A,V,regu, gamma = 1e-04, max_evals = 250, verbosity = float('inf'),error=1e-07):
     '''
     :param A:
@@ -834,7 +729,7 @@ def gradient_descent_full_line_boosted(A,V,regu, gamma = 1e-04, max_evals = 250,
         grad = new_grad
         w = new_w
     return w
-
+@jit(nopython=True, parallel=True)
 def fAndG_full(A, B, V, alpha, regu_norm='L2'):
     '''
     :param A: Gene expression matrix
@@ -843,26 +738,7 @@ def fAndG_full(A, B, V, alpha, regu_norm='L2'):
     :param alpha: correlation between neighbors
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(B, np.ndarray)
-    dim = B.shape
-    assert len(dim) == 2
-    B_rows = dim[0]
-    B_cols = dim[1]
-    assert isinstance(V, np.ndarray)
-    dim = V.shape
-    assert len(dim) == 2
-    V_rows = dim[0]
-    V_cols = dim[1]
-    if isinstance(alpha, np.ndarray):
-        dim = alpha.shape
-        assert dim == (1,)
-    assert A_rows == V_rows == B_rows
-    assert A_cols == B_cols
+
     if regu_norm=='L1':
         T_0 = (A * B)
         t_1 = np.linalg.norm(B, 1)
@@ -875,7 +751,7 @@ def fAndG_full(A, B, V, alpha, regu_norm='L2'):
         gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A))- ((alpha / t_1) * B))
     return functionValue, gradient
 
-
+@jit(nopython=True, parallel=True)
 def fAndG_full_acc(A, B, V, VVT, alpha,regu_norm):
     '''
     :param A: Gene expression matrix
@@ -886,26 +762,6 @@ def fAndG_full_acc(A, B, V, VVT, alpha,regu_norm):
     :param regu_norm: regularization norm (L1/L2)
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(B, np.ndarray)
-    dim = B.shape
-    assert len(dim) == 2
-    B_rows = dim[0]
-    B_cols = dim[1]
-    assert isinstance(V, np.ndarray)
-    dim = V.shape
-    assert len(dim) == 2
-    V_rows = dim[0]
-    V_cols = dim[1]
-    if isinstance(alpha, np.ndarray):
-        dim = alpha.shape
-        assert dim == (1,)
-    assert A_rows == V_rows == B_rows
-    assert A_cols == B_cols
     if regu_norm=='L1':
         T_0 = (A * B)
         t_1 = np.linalg.norm(B, 1)
@@ -918,6 +774,7 @@ def fAndG_full_acc(A, B, V, VVT, alpha,regu_norm):
         gradient = ((2 * ((VVT).dot(T_0) * A)) - ((alpha / t_1) * B))
     return functionValue, gradient
 
+@jit(nopython=True, parallel=True)
 def G_full(A, B, V, alpha, regu_norm='L1'):
     '''
     :param A: Gene expression matrix
@@ -926,26 +783,6 @@ def G_full(A, B, V, alpha, regu_norm='L1'):
     :param alpha: correlation between neighbors
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
-    assert isinstance(A, np.ndarray)
-    dim = A.shape
-    assert len(dim) == 2
-    A_rows = dim[0]
-    A_cols = dim[1]
-    assert isinstance(B, np.ndarray)
-    dim = B.shape
-    assert len(dim) == 2
-    B_rows = dim[0]
-    B_cols = dim[1]
-    assert isinstance(V, np.ndarray)
-    dim = V.shape
-    assert len(dim) == 2
-    V_rows = dim[0]
-    V_cols = dim[1]
-    if isinstance(alpha, np.ndarray):
-        dim = alpha.shape
-        assert dim == (1,)
-    assert A_rows == V_rows == B_rows
-    assert A_cols == B_cols
     if regu_norm=='L1':
         T_0 = (A * B)
         gradient = ((2 * (((V).dot(V.T)).dot(T_0) * A)) - ((alpha) * np.sign(B)))
@@ -1052,7 +889,7 @@ def enhance_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
     return D
 
 
-def filter_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
+def filter_linear_genes(A, method='numeric', regu=2, iterNum=500, lr=0.1):
     A = gene_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
@@ -1065,6 +902,60 @@ def filter_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
                                       iterNum=iterNum, lr=lr, ascent=-1)
     return D
 
+@jit(nopython=True)
+def numba_min_clip(A,n,m,a_min):
+    '''
+    Implementing np.clip using numba
+    :param A: Array
+    :param n: number of rows
+    :param m: number of columns
+    :param a_min: a_min
+    :return: clipped array
+    '''
+    for i in range(n):
+        for j in range(m):
+            if A[i,j]<a_min:
+                A[i,j]=a_min
+    return A
+
+@jit(nopython=True)
+def numba_clip(A,n,m,a_min,a_max):
+    '''
+    Implementing np.clip using numba
+    :param A: Array
+    :param n: number of rows
+    :param m: number of columns
+    :param a_min: a_min
+    :param a_max: a_max
+    :return: clipped array
+    '''
+    for i in range(n):
+        for j in range(m):
+            if A[i,j]<a_min:
+                A[i,j]=a_min
+            elif A[i,j]>a_max:
+                A[i, j] = a_max
+    return A
+
+
+@jit(nopython=True)
+def numba_vec_clip(v,n,a_min,a_max):
+    '''
+    Implementing np.clip using numba for vectors
+    :param A: Array
+    :param n: number of entries
+    :param a_min: a_min
+    :param a_max: a_max
+    :return: clipped vector
+    '''
+    for i in range(n):
+        if v[i]<a_min:
+            v[i]=a_min
+        elif v[i]>a_max:
+            v[i] = a_max
+    return v
+
+@jit(nopython=True, parallel=True)
 def BBS(E, iterNum=1000):
     ''' Bregmanian Bi-Stochastication algorithm as described inL
     https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/KAIS_BBS_final.pdf
@@ -1080,11 +971,12 @@ def BBS(E, iterNum=1000):
     # print(ones_m)
     for i in range(iterNum):
         if i % 15 == 1:
-            prev_E = copy.deepcopy(E)
+            prev_E = np.copy(E)
         ones_E = ones_m.dot(E)
         # print(ones_E)
         #E = E + (1 / n) * (I - E + (1 / n) * (ones_E)).dot(ones_m) - (1 / n) * ones_E
-        E = np.clip(E + (1 / n) * (I - E + (1 / n) * (ones_E)).dot(ones_m) - (1 / n) * ones_E, a_min=0, a_max=None)
+        E = E + (1 / n) * (I - E + (1 / n) * (ones_E)).dot(ones_m) - (1 / n) * ones_E
+        E = numba_min_clip(E,E.shape[0],E.shape[0],0)
         if i % 15 == 1:
             if np.linalg.norm(E - prev_E) < ((10e-6) * n):
                 break
@@ -1103,27 +995,6 @@ def mm_dataset(V, IterNum=8):
         plt.show()
         V = V * (E_rec.T).dot(F)
     return V, E_rec, F
-
-
-def signal_classification(A):
-    A = cell_normalization(A)
-    n = A.shape[0]
-    p = A.shape[1]
-    u, s, vh = np.linalg.svd(A)
-    np1 = min(n, p)
-    for i in range(np1):
-        s[i] *= s[i]
-    _, loss_cyclic = optimize_alpha_with_loss(s, loss_alpha_func=loss_alpha,
-                                              generation_func=generate_eigenvalues_circulant)
-    _, loss_linear = optimize_alpha_with_loss(s, loss_alpha_func=loss_alpha_linear,
-                                              generation_func=get_pseudo_eigenvalues_for_loss)
-    print("loss cyclic: " + str(loss_cyclic))
-    print("loss linear: " + str(loss_linear))
-    if loss_cyclic < loss_linear:
-        print("cyclic!!")
-    else:
-        print("linear!!")
-    pass
 
 
 def reorder_indicator(A,IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
@@ -1148,34 +1019,6 @@ def reorder_indicator(A,IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
     E_recon = reconstruct_e(E)
     return E, E_recon
 
-def enhance_linear_full(A, method, regu=0.1, iterNum=300):
-    A = cell_normalization(A)
-    real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
-    alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
-    eigenvectors = get_linear_eig_data(A.shape[0], alpha, method=method,
-                                       normalize_vectors=True)
-    F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors[:,1:], regu=regu,
-                             iterNum=iterNum, epsilon=0.1)
-    return F
 
 
-def filter_layers_full(A, cov, regu=0.1, iterNum=300):
-    A = cell_normalization(A)
-    t_eigenvalues, t_vec = linalg.eigh(cov)
-    for i , eig in enumerate(t_eigenvalues):
-        t_vec[:, i]*=eig
-    eigenvectors = t_vec
-    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
-                             max_evals=iterNum)#, epsilon=0.1)
-    return F
 
-def enhance_layers_full(A, cov, regu=0.1, iterNum=300):
-    print(1111111)
-    A = cell_normalization(A)
-    t_eigenvalues, t_vec = linalg.eigh(cov)
-    for i , eig in enumerate(t_eigenvalues):
-        t_vec[:, i]*=eig
-    eigenvectors = t_vec
-    F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
-                             iterNum=iterNum, epsilon=0.1)
-    return F

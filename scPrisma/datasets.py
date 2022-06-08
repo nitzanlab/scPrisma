@@ -813,3 +813,23 @@ def circular_mean(angles, weights=None):
     return angle_mean, angle_variance
 
 
+def filter_layers_full(A, cov, regu=0.1, iterNum=300):
+    A = cell_normalization(A)
+    t_eigenvalues, t_vec = linalg.eigh(cov)
+    for i , eig in enumerate(t_eigenvalues):
+        t_vec[:, i]*=eig
+    eigenvectors = t_vec
+    F = gradient_descent_full_line(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
+                             max_evals=iterNum)#, epsilon=0.1)
+    return F
+
+def enhance_layers_full(A, cov, regu=0.1, iterNum=300):
+    print(1111111)
+    A = cell_normalization(A)
+    t_eigenvalues, t_vec = linalg.eigh(cov)
+    for i , eig in enumerate(t_eigenvalues):
+        t_vec[:, i]*=eig
+    eigenvectors = t_vec
+    F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
+                             iterNum=iterNum, epsilon=0.1)
+    return F
