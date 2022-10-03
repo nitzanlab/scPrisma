@@ -66,6 +66,8 @@ For example: for sorting a gene expression that was sampled at four different ti
 ```
 adata = sort_data_crit(adata=adata ,crit='ZT',crit_list=['0','6','12','18'])
 ```
+The best performance would be achieved if there were similar numbers of samples in each state. Subsampling states with more cells than others can solve this issue. 
+
 
 
 ## Filtering workflow
