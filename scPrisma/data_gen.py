@@ -192,3 +192,111 @@ def simulate_window_linear_2(ngenes, ncells, w):
         start = int(np.floor(random.rand() * (ncells + window_size))) - window_size
         leaves_arr[max(start, 0):min(start+window_size, ncells), i] = 1
     return leaves_arr
+
+
+def simulate_spatial_cyclic(ngenes, ncells, w):
+    '''
+    Simulated a cyclic signal in a gene expression
+    :param ngenes: Number of genes
+    :param ncells: Number of cells
+    :param w: window length (percentage of cells that every gene is expressed in)
+    :return: simulated cyclic signal
+    '''
+    leaves_arr = np.zeros((ncells, ngenes))
+    #leaves_arr*=-1
+    for i in range(ngenes):
+        start = int(np.floor(random.rand() * ncells))
+        if (start + int(np.floor(ncells * w))) >= ncells:
+            leaves_arr[start:ncells, i] = 1
+            leaves_arr[0:(start + int(np.floor(ncells * w))) % ncells, i] = 1
+        else:
+            leaves_arr[start:start + int(np.floor(ncells * w)), i] = 1
+
+    return leaves_arr
+
+def gaussian(x, mu, sig):
+    return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+def simulate_gaussian_cyclic(ngenes, ncells):
+    A = np.zeros((ncells, ngenes))
+    for i in range(ngenes):
+        var = int(np.floor(random.rand() * ncells)) + 1
+        gene = gaussian(np.arange(ncells),int(ncells/2),var)
+        mean = int(np.floor(random.rand() * ncells))
+        gene = np.roll(gene,mean)
+        A[:,i]=gene
+    return A
+
+def simulate_noise_ge(ngenes, ncells):
+    B = np.random.normal(0,1,(ncells, ngenes))
+    B = np.clip(B,0,np.inf)
+    return B
+
+
+def simulate_cyclic(ngenes, nmut, skip):
+    v0 = np.random.choice([0, 1], ngenes)
+    V = sample_all_cyclic(v0, nmut, skip)
+    return V
+
+def simulate_cyclic_k(ngenes, nmut, k):
+    v0 = np.random.choice([-1, 1], ngenes)
+    V = sample_all_cyclic_k(v0, nmut, k)
+    return V
+
+def sample_all_cyclic_k(v, nmut,k, include_start=False):
+    V = []
+    ngenes = len(v)
+    if include_start:
+        V.append(copy.deepcopy(v))
+    for j in range(nmut):
+        ix = np.random.choice(ngenes, k)
+        v[ix] = (v[ix] ) *-1
+        V.append(copy.deepcopy(v))
+    first_cell= V[0]
+    last_cell = V[-1]
+    diff_list = []
+    for i in range(len(V[0])):
+        if first_cell[i] != last_cell[i]:
+            diff_list.append(i)
+    while len(diff_list) // k !=0:
+        ix = np.unique(np.random.choice(diff_list, k))
+        new_cell = copy.deepcopy(V[-1])
+        new_cell[ix] = (V[-1][ix]) *-1
+        V.append(new_cell)
+        for j in ix:
+            diff_list.remove(j)
+    return V
+
+def simulate_cyclic_random_k(ngenes, nmut, k_down=1,k_up=None):
+    v0 = np.random.choice([-1, 1], ngenes)
+    V = sample_all_cyclic_k(v0, nmut, k_down,k_up)
+    return V
+
+def sample_all_cyclic_random_k(v, nmut,k_down=1,k_up=None, include_start=False):
+    if k_up==None:
+        k_up = int(len(v)/10)
+    V = []
+    ngenes = len(v)
+    if include_start:
+        V.append(copy.deepcopy(v))
+    for j in range(nmut):
+        k = random.randint(k_down, k_up)
+        ix = np.random.choice(ngenes, k)
+        v[ix] = (v[ix] ) *-1
+        V.append(copy.deepcopy(v))
+    first_cell= V[0]
+    last_cell = V[-1]
+    diff_list = []
+    for i in range(len(V[0])):
+        if first_cell[i] != last_cell[i]:
+            diff_list.append(i)
+    k = random.randint(k_down, k_up)
+    while len(diff_list) // k !=0:
+        k = random.randint(k_down, k_up)
+        ix = np.unique(np.random.choice(diff_list, k))
+        new_cell = copy.deepcopy(V[-1])
+        new_cell[ix] = (V[-1][ix]) *-1
+        V.append(new_cell)
+        for j in ix:
+            diff_list.remove(j)
+    return V

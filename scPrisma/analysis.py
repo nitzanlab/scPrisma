@@ -231,3 +231,29 @@ def inner_product_genes_scn_adata(adata_raw, adata_en, gene1,gene2):
     print("Enhanced inner product: " +str(gene1_en.dot(gene2_en)))
     print("Raw inner product: " +str(gene1_raw.dot(gene2_raw)))
     return gene1_en.dot(gene2_en), gene1_raw.dot(gene2_raw)
+
+
+def distance_between_perm(e_range,e_range1):
+    distance = 0
+    for i in range(len(e_range)):
+        distance+= np.abs((e_range[i]-e_range1[i])%int(len(e_range)))
+    return distance/len(e_range)
+
+
+def consistency_check(A , nexp=10 , resolution=0.1):
+    consistency_list = []
+    for i in range(nexp):
+        E , E_rec = reconstruction_cyclic(A , iterNum=100 , verbose=False)
+        noise = np.random.normal(0,resolution,A.shape)
+        noise = np.clip(noise,0,np.inf)
+        A += noise
+        E , E_rec1 = reconstruction_cyclic(A , iterNum=100 , verbose=False)
+        e_range = E_to_range(E_rec)
+        e_range1 = E_to_range(E_rec1)
+        min_dist = np.inf
+        for j in range(len(e_range)):
+            dis = distance_between_perm(e_range, np.roll(e_range1, j))
+            if dis< min_dist:
+                min_dist = dis
+        consistency_list.append(min_dist*(1/len(e_range)))
+    return consistency_list

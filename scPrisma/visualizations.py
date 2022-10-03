@@ -13,6 +13,7 @@ def plot_diag(D):
     x = range(len(T))
     plt.plot(x,T)
     plt.show()
+
     pass
 
 def painted_lle_orig(V, title="LLE"):
@@ -180,17 +181,46 @@ def ranged_pca_2d(V , color,title="PCA Plot" , dis_colorbar=False):
     if not(dis_colorbar):
         cbar = plt.colorbar(sc)
         for t in cbar.ax.get_yticklabels():
-            t.set_fontsize(16)
+            t.set_fontsize(18)
     plt.title(title)
     # make simple, bare axis lines through space:
     xAxisLine = ((min(result['PCA0']), max(result['PCA0'])), (0, 0), (0,0))
     ax.plot(xAxisLine[0], xAxisLine[1], xAxisLine[2], 'r')
     yAxisLine = ((0, 0), (min(result['PCA1']), max(result['PCA1'])), (0,0))
     ax.plot(yAxisLine[0], yAxisLine[1], yAxisLine[2], 'r')
-    plt.tick_params(labelsize=16)
+    plt.tick_params(labelsize=18)
     # label the axes
-    ax.set_xlabel("PC1", fontsize=16)
-    ax.set_ylabel("PC2" , fontsize=16)
+    ax.set_xlabel("PC1", fontsize=18)
+    ax.set_ylabel("PC2" , fontsize=18)
+    plt.show()
+    pass
+
+def scalled_ranged_pca_2d(V , color,title="PCA Plot" , vmin=0, vmax=1, dis_colorbar=False):
+    sns.set_style("white")
+    # Run The PCA
+    pca = PCA(n_components=2)
+    pca.fit(V)
+    # Store results of PCA in a data frame
+    result=pd.DataFrame(pca.transform(V), columns=['PCA%i' % i for i in range(2)])
+
+    # Plot initialisation
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    sc = ax.scatter(result['PCA0'], result['PCA1'],  s=15 , c=color , vmax=vmax, vmin=vmin)
+    if not(dis_colorbar):
+        cbar = plt.colorbar(sc)
+        for t in cbar.ax.get_yticklabels():
+            t.set_fontsize(18)
+    plt.title(title , fontsize=18)
+    # make simple, bare axis lines through space:
+    xAxisLine = ((min(result['PCA0']), max(result['PCA0'])), (0, 0), (0,0))
+    ax.plot(xAxisLine[0], xAxisLine[1], xAxisLine[2], 'r')
+    yAxisLine = ((0, 0), (min(result['PCA1']), max(result['PCA1'])), (0,0))
+    ax.plot(yAxisLine[0], yAxisLine[1], yAxisLine[2], 'r')
+    plt.tick_params(labelsize=18)
+    # label the axes
+    ax.set_xlabel("PC1", fontsize=18)
+    ax.set_ylabel("PC2" , fontsize=18)
     plt.show()
     pass
 
@@ -429,9 +459,9 @@ def plot_covariance_matrix(A,title):
     ax1 = ax.imshow(A.dot(A.T))
     cbar = plt.colorbar(ax1)
     for t in cbar.ax.get_yticklabels():
-        t.set_fontsize(16)
-    plt.tick_params(labelsize=16)
-    plt.title(title)
+        t.set_fontsize(18)
+    plt.tick_params(labelsize=18)
+    #plt.title(title)
     plt.show()
     pass
 
@@ -442,10 +472,10 @@ def plot_gene_list(adata, gene_list, color1='black', color2='r', title=''):
             plt.plot(range(adata.X.shape[0]), savgol_filter(adata[:, i].X[:, 0], 25, 3), label=("Smoothed " + i),
                      color=color2)
             #plt.legend(fontsize=16)  # [i,("Smoothed " +i)]
-            plt.title(i + " gene expression as a function of cell order- " + str(title))
-            plt.xlabel("cell location at expression matrix" , fontsize=16)
-            plt.ylabel(i+ " expression",fontsize=16)
-            plt.tick_params(labelsize=16)
+            plt.title(str(title), fontsize=18)
+            plt.xlabel("cell location at expression matrix" , fontsize=18)
+            plt.ylabel(i+ " expression",fontsize=18)
+            plt.tick_params(labelsize=18)
             plt.show()
         except:
             print(1)
@@ -491,13 +521,13 @@ def plt_mean_gene_liver(adata, gene, up_lim=0.6, down_lim=-0.05, title="", color
     pass
 
 def plots_liver(adata,title):
+    sc.pp.neighbors(adata)
     sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='layer' , title=("PCA of " + title + " painted by layer"))
-    sc.pl.pca_scatter(adata, color='ZT' , title=("PCA of " + title + " painted by ZT"))
-    #gene_list_z = ['glul', 'ass1', 'asl', 'cyp2f2', 'cyp1a2', 'pck1', 'cyp2e1', 'cdh2', 'cdh1', 'cyp7a1', 'acly', 'alb', 'oat', 'aldob', 'cps1']
-    #gene_list_r = [ 'clock', 'npas2', 'nr1d1', 'nr1d2', 'per1', 'per2', 'cry1', 'cry2', 'dbp', 'tef', 'hlf', 'elovl3', 'rora' ,'rorc']
-    #gene_list = ['']
-    #sc.pl.pca_scatter(adata, color=i, title=("PCA of " + title + " painted by " + i))
+    sc.pl.pca_scatter(adata, color='layer' , title=("PCA of " + title + " painted by layer"), legend_fontsize='x-large')
+    sc.pl.pca_scatter(adata, color='ZT' , title=("PCA of " + title + " painted by ZT"), legend_fontsize='x-large')
+    sc.tl.tsne(adata)
+    sc.pl.tsne(adata, color='ZT' , title=("TSNE of " + title + " painted by ZT"), legend_fontsize='x-large')
+    sc.pl.tsne(adata, color='layer' , title=("TSNE of " + title + " painted by layer"), legend_fontsize='x-large')
 
     pass
 

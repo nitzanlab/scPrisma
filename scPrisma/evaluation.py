@@ -4,7 +4,6 @@ from sklearn.manifold import MDS , LocallyLinearEmbedding
 from analysis import *
 from datasets import *
 import numpy as np
-import circle_fit as cf
 import numpy as np
 from sklearn.datasets import make_circles
 from scipy import stats

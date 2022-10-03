@@ -251,6 +251,7 @@ def all_plots_liver(adata,title):
     sc.tl.pca(adata)
     sc.pl.pca_scatter(adata, color='layer' , title=("PCA of " + title + " painted by layer"))
     sc.pl.pca_scatter(adata, color='ZT' , title=("PCA of " + title + " painted by ZT"))
+
     gene_list_r = [ 'clock', 'npas2', 'nr1d1', 'nr1d2', 'per1', 'per2', 'cry1', 'cry2', 'dbp', 'tef', 'hlf', 'elovl3', 'rora' ,'rorc']
     #gene_list_r = ['cry1','cry2','clock','n1d1','per1','per2','per3', 'rn18s']
     r_adata = sort_data_crit(adata=copy.deepcopy(adata.copy()),crit='ZT',crit_list=['0','6','12','18'])
@@ -460,16 +461,25 @@ def read_scn_single_file(path,CT="0" , n_obs=300):
     sc.pp.subsample(adata,n_obs=n_obs , random_state=123)
     return adata
 
-def read_scn_single_file_no_ss(path,CT="0"):
+def read_scn_single_file_no_ss(path,CT="0" , ST="0"):
     adata = sc.read_csv(path).T
     adata.var_names_make_unique()
     adata.obs_names_make_unique()
     adata.obs['CT'] = CT
+    adata.obs['ST'] = ST
     return adata
 
 def all_plots_scn(adata,title ):
+    sc.pp.neighbors(adata)
     sc.tl.pca(adata)
-    sc.pl.pca_scatter(adata, color='CT' , title=("PCA of " + title + " painted by CT"))
+    sc.pl.pca_scatter(adata, color='CT' , title=("PCA of " + title + " painted by CT") , legend_fontsize='x-large')
+    sc.pl.pca_scatter(adata, color='ST' , title=("PCA of " + title + " painted by sampling time"), legend_fontsize='x-large')
+    sc.tl.tsne(adata)
+
+
+    sc.pl.tsne(adata, color='CT' , title=("TSNE of " + title + " painted by CT"), legend_fontsize='x-large')
+    sc.pl.tsne(adata, color='ST' , title=("TSNE of " + title + " painted by sampling time"), legend_fontsize='x-large')
+
     pass
 
 def scn_single_cluster(adata,cluster):
@@ -477,24 +487,30 @@ def scn_single_cluster(adata,cluster):
     return adata
 
 def read_all_scn_no_obs():
-    adata = read_scn_single_file_no_ss("SCN/GSM3290582_CT14.csv",  CT="14")
-    adata1 = read_scn_single_file_no_ss("SCN/GSM3290583_CT18.csv",  CT="18",)
-    adata2 = read_scn_single_file_no_ss("SCN/GSM3290584_CT22.csv",  CT="22")
-    adata3 = read_scn_single_file_no_ss("SCN/GSM3290585_CT26.csv",  CT="26")
-    adata4 = read_scn_single_file_no_ss("SCN/GSM3290586_CT30.csv",  CT="30")
-    adata5 = read_scn_single_file_no_ss("SCN/GSM3290587_CT34.csv", CT="34")
-    adata6 = read_scn_single_file_no_ss("SCN/GSM3290588_CT38.csv", CT="14",)
-    adata7 = read_scn_single_file_no_ss("SCN/GSM3290589_CT42.csv", CT="18")
-    adata8 = read_scn_single_file_no_ss("SCN/GSM3290590_CT46.csv", CT="22")
-    adata9 = read_scn_single_file_no_ss("SCN/GSM3290591_CT50.csv", CT="26")
-    adata10 = read_scn_single_file_no_ss("SCN/GSM3290592_CT54.csv", CT="30")
-    adata11 = read_scn_single_file_no_ss("SCN/GSM3290593_CT58.csv", CT="34")
+    adata = read_scn_single_file_no_ss("SCN/GSM3290582_CT14.csv",  CT="14" , ST="14")
+    adata1 = read_scn_single_file_no_ss("SCN/GSM3290583_CT18.csv",  CT="18", ST="18")
+    adata2 = read_scn_single_file_no_ss("SCN/GSM3290584_CT22.csv",  CT="22", ST="22")
+    adata3 = read_scn_single_file_no_ss("SCN/GSM3290585_CT26.csv",  CT="02", ST="26")
+    adata4 = read_scn_single_file_no_ss("SCN/GSM3290586_CT30.csv",  CT="06", ST="30")
+    adata5 = read_scn_single_file_no_ss("SCN/GSM3290587_CT34.csv", CT="10", ST="34")
+    adata6 = read_scn_single_file_no_ss("SCN/GSM3290588_CT38.csv", CT="14", ST="38")
+    adata7 = read_scn_single_file_no_ss("SCN/GSM3290589_CT42.csv", CT="18", ST="42")
+    adata8 = read_scn_single_file_no_ss("SCN/GSM3290590_CT46.csv", CT="22", ST="46")
+    adata9 = read_scn_single_file_no_ss("SCN/GSM3290591_CT50.csv", CT="02", ST="50")
+    adata10 = read_scn_single_file_no_ss("SCN/GSM3290592_CT54.csv", CT="06", ST="54")
+    adata11 = read_scn_single_file_no_ss("SCN/GSM3290593_CT58.csv", CT="10", ST="58")
     adata = adata.concatenate(adata6)
+    adata = shuffle_adata(adata)
     adata1 = adata1.concatenate(adata7)
+    adata1 = shuffle_adata(adata1)
     adata2 = adata2.concatenate(adata8)
+    adata2 = shuffle_adata(adata2)
     adata3 = adata3.concatenate(adata9)
+    adata3 = shuffle_adata(adata3)
     adata4 = adata4.concatenate(adata10)
+    adata4 = shuffle_adata(adata4)
     adata5 = adata5.concatenate(adata11)
+    adata5 = shuffle_adata(adata5)
     adata = adata.concatenate(adata1, adata2,adata3, adata4, adata5)
     return adata
 
@@ -510,15 +526,15 @@ def evaluate_single_scn_cluster(adata,cluster,type_genes,r_genes,gene_regu=0,en_
     adata_tmp = adata_tmp[:, adata_tmp.var.highly_variable]
     all_plots_scn(adata_tmp,title= cluster+ " - raw data, " )
     adata_tmp.write("SCN/" + cluster+"_raw" +".h5ad")
-    D = filter_cyclic_genes(adata_tmp.X, regu=gene_regu, iterNum=200)
+    D = filter_cyclic_genes((np.array(adata_tmp.X)).astype('float64'), regu=gene_regu, iterNum=200)
     D = np.identity(D.shape[0])-D
     adata_en = adata_tmp.copy()
     adata_en.X = (adata_en.X).dot(D)
-    F = filter_full(adata_en.X, regu=en_regu, iterNum=50)
+    F = enhancement_cyclic((np.array(adata_en.X)).astype('float64'), regu=en_regu, iterNum=50)
     adata_en.X = adata_en.X * F
     adata_en.write("SCN/" + cluster+"_en" +".h5ad")
     all_plots_scn(adata_en,title= cluster+ " - enhanced signal, " )
-    F = filter_cyclic_full_line(adata_tmp.X, regu=filter_regu, iterNum=50)
+    F = filtering_cyclic((np.array(adata_tmp.X)).astype('float64'), regu=filter_regu, iterNum=50)
     adata_tmp.X = adata_tmp.X * F
     adata_tmp.write("SCN/" + cluster+"_filtered" +".h5ad")
     all_plots_scn(adata_tmp,title= cluster+ " - filtered signal, " )
@@ -634,7 +650,7 @@ def plot_diurnal_cycle_by_phase(adata, title = ""):
                     #print("gene was filtered out")
                     a=1
     for i in range(6):
-        ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=35,polyorder=3), title=title + " phase: " +str(i*4) + " - " +str((i*4 +3.5)))
+        scalled_ranged_pca_2d((adata.X),scipy.signal.savgol_filter(phase_array[i,:]/phase_array[i,:].max(),window_length=35,polyorder=3), title=" Phase: " +str(i*4) + " - " +str((i*4 +3.5)))
     pass
 
 
@@ -725,6 +741,10 @@ def all_plots_hela(adata,title):
     :param title: title for figures
     '''
     ranged_pca_2d(adata.X,color=range(adata.X.shape[0]),title=("HeLa cells PCA, painted by cell location in the matrix"))
+    sc.pp.neighbors(adata)
+    sc.tl.pca(adata)
+    sc.tl.umap(adata)
+    sc.pl.umap(adata)
     cyclic_by_phase = pd.read_csv("data/cyclic_by_phase.csv")
     G1S = score_list_of_genes_single_adata(cyclic_by_phase=cyclic_by_phase, phase="G1.S", adata=adata)
     S = score_list_of_genes_single_adata(cyclic_by_phase=cyclic_by_phase, phase="S", adata=adata)
@@ -833,3 +853,101 @@ def enhance_layers_full(A, cov, regu=0.1, iterNum=300):
     F = gradient_ascent_full(A, F=np.ones(A.shape), V=eigenvectors, regu=regu,
                              iterNum=iterNum, epsilon=0.1)
     return F
+
+def subsample_liver_per_layer(n_obs_1=30):
+    n_obs=int(n_obs/2)
+    adata = read_cr_single_file_layer("cr/GSM4308343_UMI_tab_ZT00A.txt", layer_path="cr/ZT00A_reco.txt", ZT="0",
+                                      n_obs=n_obs)
+    adata.var_names_make_unique()
+    adata.obs_names_make_unique()
+    adata1 = read_cr_single_file_layer("cr/GSM4308344_UMI_tab_ZT00B.txt", layer_path="cr/ZT00B_reco.txt", ZT="0",
+                                      n_obs=n_obs)
+    adata1.var_names_make_unique()
+    adata1.obs_names_make_unique()
+    adata=adata.concatenate(adata1)
+    adata2 = read_cr_single_file_layer("cr/GSM4308346_UMI_tab_ZT06A.txt", layer_path="cr/ZT06A_reco.txt", ZT="6",
+                                      n_obs=n_obs)
+    adata2.obs_names_make_unique()
+    adata2.var_names_make_unique()
+    adata3 = read_cr_single_file_layer("cr/GSM4308347_UMI_tab_ZT06B.txt", layer_path="cr/ZT06B_reco.txt", ZT="6",
+                                      n_obs=n_obs)
+    adata3.obs_names_make_unique()
+    adata3.var_names_make_unique()
+    adata2=adata2.concatenate(adata3)
+
+    adata4 = read_cr_single_file_layer("cr/GSM4308348_UMI_tab_ZT12A.txt", layer_path="cr/ZT12A_reco.txt", ZT="12", n_obs=n_obs)
+    adata4.var_names_make_unique()
+    adata4.obs_names_make_unique()
+    adata5 = read_cr_single_file_layer("cr/GSM4308349_UMI_tab_ZT12B.txt", layer_path="cr/ZT12B_reco.txt", ZT="12",
+                                      n_obs=n_obs)
+    adata5.var_names_make_unique()
+    adata5.obs_names_make_unique()
+    adata4=adata4.concatenate(adata5)
+
+    adata6 = read_cr_single_file_layer("cr/GSM4308351_UMI_tab_ZT18A.txt", layer_path="cr/ZT18A_reco.txt", ZT="18",
+                                      n_obs=n_obs)
+    adata6.var_names_make_unique()
+    adata6.obs_names_make_unique()
+    adata7 = read_cr_single_file_layer("cr/GSM4308352_UMI_tab_ZT18B.txt", layer_path="cr/ZT18B_reco.txt", ZT="18",
+                                      n_obs=n_obs)
+    adata7.var_names_make_unique()
+    adata7.obs_names_make_unique()
+    adata6=adata6.concatenate(adata7)
+
+    adata = adata.concatenate(adata2, adata4, adata6)
+
+    return adata
+
+def evaluate_multiple_scn_clusters(adata,cluster_list, cluster,type_genes,r_genes,gene_regu=0,en_regu=0,filter_regu=0):
+    adata_tmp = (adata[adata.obs['louvain'].isin(cluster_list)])
+    adata_tmp = sort_data_crit(adata=adata_tmp.copy(), crit='CT',
+                             crit_list=['02', '06', '10', '14', '18', '22'])
+    sc.pp.highly_variable_genes(adata_tmp, n_top_genes=3000)#min_mean=0.0125, max_mean=3, min_disp=0.5)
+    for gene in r_genes: # Make sure that the rhytmic and type markers are not filtered out
+        adata_tmp.var.highly_variable[gene]=True
+    for gene in type_genes:
+        adata_tmp.var.highly_variable[gene]=True
+    adata_tmp = adata_tmp[:, adata_tmp.var.highly_variable]
+    all_plots_scn(adata_tmp,title= cluster+ " - raw data, " )
+    adata_tmp.write("SCN/" + cluster+"_raw" +".h5ad")
+    D = filter_cyclic_genes((np.array(adata_tmp.X)).astype('float64'), regu=gene_regu, iterNum=200)
+    D = np.identity(D.shape[0])-D
+    adata_en = adata_tmp.copy()
+    adata_en.X = (adata_en.X).dot(D)
+    F = enhancement_cyclic((np.array(adata_en.X)).astype('float64'), regu=en_regu, iterNum=50)
+    adata_en.X = adata_en.X * F
+    adata_en.write("SCN/" + cluster+"_en" +".h5ad")
+    all_plots_scn(adata_en,title= cluster+ " - enhanced signal, " )
+    F = filtering_cyclic((np.array(adata_tmp.X)).astype('float64'), regu=filter_regu, iterNum=50)
+    adata_tmp.X = adata_tmp.X * F
+    adata_tmp.write("SCN/" + cluster+"_filtered" +".h5ad")
+    all_plots_scn(adata_tmp,title= cluster+ " - filtered signal, " )
+    pass
+
+def evaluate_multiple_scn_clusters_no_filtering(adata,cluster_list, cluster,type_genes,r_genes,gene_regu=0,en_regu=0,filter_regu=0):
+    adata_tmp = (adata[adata.obs['louvain'].isin(cluster_list)])
+    adata_tmp = sort_data_crit(adata=adata_tmp.copy(), crit='CT',
+                             crit_list=['02', '06', '10', '14', '18', '22'])
+    sc.pp.highly_variable_genes(adata_tmp, n_top_genes=3000)#min_mean=0.0125, max_mean=3, min_disp=0.5)
+    for gene in r_genes: # Make sure that the rhytmic and type markers are not filtered out
+        adata_tmp.var.highly_variable[gene]=True
+    for gene in type_genes:
+        adata_tmp.var.highly_variable[gene]=True
+    adata_tmp = adata_tmp[:, adata_tmp.var.highly_variable]
+    all_plots_scn(adata_tmp,title= cluster+ " - raw data, " )
+    sc.pp.neighbors(adata_tmp)
+    sc.tl.pca(adata_tmp)
+    sc.pl.pca_scatter(adata_tmp, color='louvain' , title=("PCA of " + cluster + " raw data, painted by cell type"), legend_fontsize='x-large')
+    adata_tmp.write("SCN/" + cluster+"_raw" +".h5ad")
+    D = filter_cyclic_genes((np.array(adata_tmp.X)).astype('float64'), regu=gene_regu, iterNum=200)
+    D = np.identity(D.shape[0])-D
+    adata_en = adata_tmp.copy()
+    adata_en.X = (adata_en.X).dot(D)
+    F = enhancement_cyclic((np.array(adata_en.X)).astype('float64'), regu=en_regu, iterNum=50)
+    adata_en.X = adata_en.X * F
+    adata_en.write("SCN/" + cluster+"_en" +".h5ad")
+    all_plots_scn(adata_en,title= cluster+ " - enhanced signal, " )
+    sc.pp.neighbors(adata_en)
+    sc.tl.pca(adata_en)
+    sc.pl.pca_scatter(adata_en, color='louvain' , title=("PCA of " + cluster + " enhanced data, painted by cell type"), legend_fontsize='x-large')
+    pass

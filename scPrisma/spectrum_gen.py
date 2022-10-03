@@ -30,26 +30,33 @@ def generate_eigenvectors_circulant(n, alpha=0.9999):
 
 
 
-@jit(nopython=True, parallel=True)
 def generate_spectral_matrix(n, alpha=0.99):
     '''
     :param n: number of cells
     :param alpha: correlation between neighbors
     :return: spectral matrix, each eigenvector is multiplied by the sqrt of the appropriate eigenvalue
     '''
+    return generate_spectral_matrix_tmp(n,alpha)
+    #return generate_spectral_matrix_inner(n,np.array(alpha))
+
+@jit(nopython=True, parallel=True)
+def generate_spectral_matrix_inner(n, alpha):
+    '''
+    :param n: number of cells
+    :param alpha: correlation between neighbors
+    :return: spectral matrix, each eigenvector is multiplied by the sqrt of the appropriate eigenvalue
+    '''
     eigen_vectors = np.zeros((n,n))
+    k = np.arange(n)
     for i in range(n):
-        v = np.zeros(n)
-        for k in range(n):
-            v[k] = math.sqrt(2 / n) * math.cos(math.pi * (((2 * (i) * (k)) / n) - 1 / 4))
+        v = np.sqrt(2 / n) * np.cos(math.pi * (((2 * (i) * (k)) / n) - 1 / 4))
         eigen_vectors[i,:]=v
     eigen_values = np.zeros(n)
+    k_1 = k[:int(n/2)]
+    k_2 = k[int(n/2):]
     for i in range(n):
-        for k in range(n):
-            if k < n / 2:
-                eigen_values[i] += (alpha ** k) * math.cos((2 * math.pi * i * k) / n)
-            else:
-                eigen_values[i] += (alpha ** (n-k)) * math.cos((2 * math.pi * i * k) / n)
+        eigen_values[i]=np.sum((alpha** k_1) * np.cos((2 * np.pi * i * k_1) / n))
+        eigen_values[i]+=np.sum((alpha **  (n-k_2)) * np.cos((2 * np.pi * i * k_2) / n))
     for i in range(n):
         eigen_vectors[i]*=np.sqrt(eigen_values[i])
     return eigen_vectors
@@ -237,3 +244,17 @@ def get_linear_eig_data(ncells, alpha, method, normalize_vectors):
 
 
 
+def get_theoretic_eigen(cov, n_values=None):
+    if n_values==None:
+        n_values= cov.shape[0]
+    eig_vals, eig_vecs = linalg.eigh(cov)
+    idx = eig_vals.argsort()[::-1]
+    eig_vals = eig_vals[idx]
+    eig_vecs = eig_vecs[:,idx]
+    eig_vals = eig_vals[:n_values]
+    eig_vecs = eig_vecs[:,:n_values]
+    eig_vals = np.real(eig_vals)
+    eig_vecs = np.real(eig_vecs)
+    for i in range(eig_vals.size):
+            eig_vecs[:, i] *= np.sqrt(eig_vals[i])
+    return eig_vecs
