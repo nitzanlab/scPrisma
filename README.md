@@ -23,7 +23,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 [Manuscript](https://www.biorxiv.org/content/10.1101/2022.06.07.493867v1)
-
+[Notebooks](https://github.com/nitzanlab/scPrisma_notebooks)
 ### Built With
 * [Python](https://www.python.org/) - 3.7 , Numpy and Numba libraries. it is recommended to use also Scanpy library.
 
