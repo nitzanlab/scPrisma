@@ -3,6 +3,8 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 <h2> For reproducibility of scPrisma manuscript, please refer to:<br /> https://github.com/nitzanlab/scPrisma_notebooks</h2>
 
 <br />
+<h2> For GPU/pytorch version of scPrisma, please refer to:<br /> https://github.com/nitzanlab/scPrisma_torch/</h2>
+<br />
 
 ![workflow](https://github.com/nitzanlab/scPrisma/blob/main/workflow.png?raw=true)
 <br />
