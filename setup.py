@@ -11,6 +11,6 @@ setup(
     description='scPrisma: inference, filtering and enhancement of periodic signals in single-cell data using spectral template matching ',
     python_requires='>=3',
     install_requires=[
-        'numpy', 'scanpy', 'numba', 'pandas', 'scikit-learn', 'scipy', 'seaborn','matplotlib']
+        'numpy', 'scanpy', 'numba', 'pandas', 'scikit-learn', 'scipy', 'seaborn','matplotlib','sklearn']
 
 )
