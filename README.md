@@ -37,7 +37,7 @@ git clone https://github.com/nitzanlab/scPrisma.git
 cd scPrisma
 pip install .
 ```
-##Imports
+## Imports
 It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
 
 ```
