@@ -1067,3 +1067,31 @@ def gene_inference_general_topology(A, V, regu=0.5, iterNum=100 , lr=0.1):
     return D
 
 
+
+def sort_data_crit(adata,crit,crit_list):
+    '''
+    Sort the cells of an AnnData object according to a field (obs)
+    :param adata: AnnData to be sorted
+    :param crit: 'obs' field
+    :param crit_list: list of 'obs' possible values, sorted according to the desired ordering (e.g ['0','6','12','18])
+    :return:
+    '''
+    adata = shuffle_adata(adata) #for avoiding batch effects
+    layers = [[] for i in range(len(crit_list))]
+    obs = adata.obs
+    for i, row in obs.iterrows():
+        layer = (row[crit])
+        for j , item in enumerate(crit_list):
+            if item==layer:
+                layers[j].append(i)
+    order = sum(layers, [])
+    sorted_data = adata[order,:]
+    return sorted_data
+
+def E_to_range(E):
+    order =[]
+    for i in range(E.shape[0]):
+        for j in range(E.shape[1]):
+            if E[i,j]==1:
+                order.append(j)
+    return np.array(order)
