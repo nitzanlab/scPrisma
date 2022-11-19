@@ -12,3 +12,12 @@ Installation
     git clone https://github.com/nitzanlab/scPrisma.git
     cd scPrisma
     pip install .
+PyPI
+----
+scPrisma is also available on PyPI::
+
+    pip install scPrisma
+    # or with extra libraries, useful for large datasets
+    pip install 'scPrisma[...]'
+    # or with external modules, see External API
+    pip install 'scPrisma[...]'
