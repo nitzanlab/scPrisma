@@ -9,9 +9,9 @@ scPrisma
 
 Installation
 ^^^^^^^^^^^^
-PyPI
+pip
 ----
-scPrisma is also available on PyPI::
+scPrisma can be installed using pip::
 
     git clone https://github.com/nitzanlab/scPrisma.git
     cd scPrisma
