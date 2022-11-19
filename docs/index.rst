@@ -9,6 +9,6 @@ scPrisma
 
 Installation
 ^^^^^^^^^^^^
-git clone https://github.com/nitzanlab/scPrisma.git
-cd scPrisma
-pip install .
+   git clone https://github.com/nitzanlab/scPrisma.git
+   cd scPrisma
+   pip install .
