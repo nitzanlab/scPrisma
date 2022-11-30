@@ -43,7 +43,7 @@ pip install .
 It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
 
 ```
-import scPrisma.algorithms as algo
+from scPrisma.algorithms import *
 import scanpy as sc
 import numpy as np
 ```
@@ -58,8 +58,8 @@ sc.pp.log1p(adata)
 The first step in this workflow is reconstruct the signal, this can be done using the reconstriction algorithm:
 
 ```
-E , E_rec = algo.reconstruction_cyclic(adata.X)
-order = algo.E_to_range(E_rec)
+E , E_rec = reconstruction_cyclic(adata.X)
+order = E_to_range(E_rec)
 adata = adata[order,:]
 ```
 'reconstruction_cyclic' function receives as an input the gene expression matrix (and parameters that can be seen in 'algorithms.py') and returns 'E' which is a doubly stochastic matrix and 'E_rec' which is the desired permutation matrix.
@@ -67,13 +67,13 @@ adata = adata[order,:]
 
 If low-resolution pseudotime ordering exists (as prior knowledge) it can be used instead of applying the reconstruction algorithm:
 ```
-adata = algo.sort_data_crit(adata=adata ,crit=crit,crit_list=crit_list)
+adata = sort_data_crit(adata=adata ,crit=crit,crit_list=crit_list)
 ```
 
 Each cell should have a label of his place stored as 'obs'. 'crit' is the desired label,  'crit_list' is the desired order.
 For example: for sorting a gene expression that was sampled at four different timepoints (0,6,12,18). The sampling time can be stored as 'ZT' (adata.obs['ZT'] = X). and applied the following function:
 ```
-adata = algo.sort_data_crit(adata=adata ,crit='ZT',crit_list=['0','6','12','18'])
+adata = sort_data_crit(adata=adata ,crit='ZT',crit_list=['0','6','12','18'])
 ```
 The best performance would be achieved if there were similar numbers of samples in each state. Subsampling states with more cells than others can solve this issue. 
 
@@ -82,7 +82,7 @@ The best performance would be achieved if there were similar numbers of samples 
 ## Filtering workflow
 After reconstruction was applied, we can use the filtering algorithm. This algorithm filters out the expression profiles that are related to the reconstructed topology.
 ```
-F = algo.filtering_cyclic(adata.X, regu=0 )
+F = filtering_cyclic(adata.X, regu=0 )
 adata.X = adata.X * F
 ```
 'regu' is the regularization parameter, it is recomended that this parameter would be between 0 and 0.5. As long as we increase this parameter <b><u>less</u></b> information would be filter out. Since it is a convex optimization problem, it is solved using backtracking line search gradient descent.
@@ -90,7 +90,7 @@ adata.X = adata.X * F
 After reconstruction was applied, we can use the enhancement algorithm. This algorithm filters out the expression profiles that <b><u>are not</u></b> related to the reconstructed topology.
 It is recomended to use the informative genes infereence algorithm before using the enhancement algorithm. Running the genes inference algorithm, prevents overfitting of genes that are not related to desired topology.
 ```
-D = algo.filter_cyclic_genes_line(adata.X, regu=0)
+D = filter_cyclic_genes_line(adata.X, regu=0)
 D = np.identify(D.shape[0)-D
 adata.X = (adata.X).dot(D)
 ```
@@ -98,7 +98,7 @@ adata.X = (adata.X).dot(D)
 Next we can apply the enhancement algorithm:
 
 ```
-F = algo.enhancement_cyclic(adata.X, regu=0 )
+F = enhancement_cyclic(adata.X, regu=0 )
 adata.X = adata.X * F
 ```
 
