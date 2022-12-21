@@ -114,7 +114,7 @@ As long as we increase the regularization parameter we will filter out <b><u>mor
 
 ## Running the tests
 
-I recommend creating two separate virtual environments for running the cpu/gpu test suite. I use conda but this can be replaced any other virtual environment manager of your choice.
+I recommend creating two separate virtual environments for running the cpu/gpu test suite. On my laptop, I use conda but this can be replaced any other virtual environment manager of your choice.
 
 ### Running the cpu only tests 
 
