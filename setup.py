@@ -16,9 +16,9 @@ cpu = ["numba"]
 gpu = ["torch"]
 
 setup(
-    name="scprisma",
+    name="scPrisma",
     version="0.0.5",
-    packages=["scprisma"],
+    packages=["scPrisma"],
     url="https://github.com/nitzanlab/scPrisma",
     license="MIT License",
     author="jonathankarin",
