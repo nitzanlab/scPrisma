@@ -11,8 +11,6 @@ requirements = [
     "matplotlib",
     "sklearn",
 ]
-cpu = ["numba"]
-
 gpu = ["torch"]
 
 setup(
@@ -28,5 +26,5 @@ setup(
     description="scPrisma: inference, filtering and enhancement of periodic signals in single-cell data using spectral template matching ",
     python_requires=">=3",
     install_requires=requirements,
-    extras_require={"cpu": cpu, "gpu": gpu},
+    extras_require={"gpu": gpu},
 )
