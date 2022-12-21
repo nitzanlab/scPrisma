@@ -10,6 +10,7 @@ requirements = [
     "seaborn",
     "matplotlib",
     "sklearn",
+    "pytest", #TODO: For simplicity adding it to requirements.
 ]
 gpu = ["torch"]
 
