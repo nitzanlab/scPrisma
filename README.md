@@ -38,6 +38,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 git clone https://github.com/nitzanlab/scPrisma.git
 cd scPrisma
 pip install .
+For running the gpu version install it like so pip install .[gpu]
 ```
 ## Imports
 It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
@@ -110,6 +111,28 @@ As long as we increase the regularization parameter we will filter out <b><u>mor
 [De-novo reonstruction, cyclic enhancement and filtering- HeLa S3 cells](https://github.com/nitzanlab/scPrisma/blob/main/tutorials/tutorial_de_novo_reconstruction.ipynb)
 <br />
 [Reonstruction from prior knowledge, cyclic enhancement and filtering, linear enhancment and filtering- Mouse liver lobules](https://github.com/nitzanlab/scPrisma/blob/main/tutorials/tutorial_prior_knowledge_linear_and_cyclic.ipynb)
+
+## Running the tests
+
+I recommend creating two separate virtual environments for running the cpu/gpu test suite. On my laptop, I use conda but this can be replaced any other virtual environment manager of your choice.
+
+### Running the cpu only tests 
+
+```
+conda create -n scprisma_cpu python=3.10
+conda activate scprisma_cpu
+pip install .
+pytest tests/cpu
+```
+
+### Running the gpu only tests 
+
+```
+conda create -n scprisma_gpu python=3.10
+conda activate scprisma_gpu
+pip install .[gpu]
+pytest tests/gpu
+```
 
 <!-- CONTACT -->
 ## Contact
