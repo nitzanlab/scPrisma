@@ -92,7 +92,7 @@ After reconstruction was applied, we can use the enhancement algorithm. This alg
 It is recomended to use the informative genes infereence algorithm before using the enhancement algorithm. Running the genes inference algorithm, prevents overfitting of genes that are not related to desired topology.
 ```
 D = filter_cyclic_genes_line(adata.X, regu=0)
-D = np.identify(D.shape[0)-D
+D = np.identify(D.shape[0])-D
 adata.X = (adata.X).dot(D)
 ```
 'regu' is the regularization parameter, it is recomended that this parameter would be between -0.1 and 0.5. As long as we increase this parameter the algorithm would filter out <b><u>less</u></b> genes. But, we will retain the genes that the algorithm would not filter, so as long as we increase this parameter,<b><u>more</u></b> genes will be filtered out.
