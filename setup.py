@@ -3,7 +3,7 @@ from setuptools import setup
 requirements = [
     "numpy",
     "scanpy",
-    "numba",
+    "numba==0.55.2",
     "pandas",
     "scikit-learn",
     "scipy",
