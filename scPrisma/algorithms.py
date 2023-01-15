@@ -16,7 +16,6 @@ def numba_diagonal(A):
     return d
 
 
-@jit(nopython=True, parallel=True)
 def reconstruct_e(E_prob):
     '''
     Greedy algorithm to reconstruct permutation matrix from Bi-Stochastic matrix
