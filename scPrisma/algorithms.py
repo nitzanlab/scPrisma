@@ -1590,13 +1590,18 @@ def BBS(E: np.ndarray, iterNum: int = 1000, early_exit: int = 15) -> np.ndarray:
     n = E.shape[0]
     prev_E = np.empty(E.shape)
     I = np.identity(n)
+    a_min=0
     ones_m = np.ones((n, n))
     for i in range(iterNum):
         if i % early_exit == 1:
             prev_E = np.copy(E)
         ones_E = ones_m.dot(E)
         E = E + (1 / n) * (I - E + (1 / n) * (ones_E)).dot(ones_m) - (1 / n) * ones_E
-        E = numba_min_clip(E, n, n, 0)
+        for i in range(n):
+            for j in range(n):
+                if E[i, j] < a_min:
+                    E[i, j] = a_min
+        #E = numba_min_clip(E, n, n, 0) bug in the dispatching
         if i % early_exit == 1:
             if np.linalg.norm(E - prev_E) < ((10e-6) * n):
                 break
