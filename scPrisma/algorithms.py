@@ -1238,16 +1238,10 @@ def function_and_gradient_full_acc(A, B, V, VVT, regu, regu_norm):
     tuple
         A tuple containing the projection over theoretic spectrum and the gradient according to 'B'.
     """
-    if regu_norm == 'L1':
-        T_0 = (A * B)
-        t_1 = np.linalg.norm(B, 1)
-        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (regu * t_1))
-        gradient = ((2 * ((VVT).dot(T_0) * A)) - ((regu) * np.sign(B)))
-    else:
-        T_0 = (A * B)
-        t_1 = np.linalg.norm(A * B, 'fro')
-        functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (regu * t_1))
-        gradient = ((2 * ((VVT).dot(T_0) * A)) - ((regu / t_1) * B))
+    T_0 = (A * B)
+    t_1 = np.linalg.norm(B, 1)
+    functionValue = (np.trace((((V.T).dot(T_0)).dot(T_0.T)).dot(V)) - (regu * t_1))
+    gradient = ((2 * ((VVT).dot(T_0) * A)) - ((regu) * np.sign(B)))
     return functionValue, gradient
 
 
