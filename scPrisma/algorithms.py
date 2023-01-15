@@ -433,8 +433,7 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, ver
     n = A.shape[0]
     p = A.shape[1]
     V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr,
-                            verbose=verbose)
+    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr, verbose=verbose)
     E_recon = reconstruct_e(E)
     if final_loss:
         value, grad = function_and_gradient_matrix(A=((1 / A.shape[0]) * A), E=E_recon, V=V.T)
@@ -1070,7 +1069,7 @@ def gradient_descent_full_line(A, F, V, regu, gamma=1e-04, max_evals=250, verbos
         prev_w = np.copy(w)
         evals += 1
         if evals % verbosity == 0:
-            print(str(evals))
+            print((evals))
             print('th Iteration    Loss :: ')
             print((loss))
         gTg = np.linalg.norm(grad)
