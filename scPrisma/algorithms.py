@@ -1596,7 +1596,7 @@ def BBS(E: np.ndarray, iterNum: int = 1000, early_exit: int = 15) -> np.ndarray:
             prev_E = np.copy(E)
         ones_E = ones_m.dot(E)
         E = E + (1 / n) * (I - E + (1 / n) * (ones_E)).dot(ones_m) - (1 / n) * ones_E
-        E = numba_min_clip(E, E.shape[0], E.shape[0], 0)
+        E = numba_min_clip(E, n, n, 0)
         if i % early_exit == 1:
             if np.linalg.norm(E - prev_E) < ((10e-6) * n):
                 break
