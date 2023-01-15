@@ -5,7 +5,6 @@ from sklearn.metrics import roc_auc_score
 
 from scPrisma.data_gen import simulate_spatial_cyclic
 from scPrisma.pre_processing import *
-from scPrisma.visualizations import *
 from numba import jit
 
 
