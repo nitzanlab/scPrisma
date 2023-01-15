@@ -4,7 +4,8 @@ import numpy as np
 from numpy import random
 from scipy.optimize.linesearch import line_search
 
-from scPrisma.pre_processing import *
+from pre_processing import *
+from visualizations import *
 from numba import jit
 
 @jit(nopython=True, parallel=True)
@@ -126,7 +127,7 @@ def G_matrix(A, E, VVT):
     return gradient
 
 @jit(nopython=True, parallel=True)
-def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9 , verbose=True):
+def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, projection='BBS'):
     '''
     :param A: gene expression matrix
     :param E: permutation matrix initial value
@@ -142,8 +143,8 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9 , 
     VVT = (V).dot(V.T) #for runtime optimization
     epsilon_t = lr
     step = np.zeros(E.shape)
-    while (j < iterNum ):
-        if (j % 25 == 0) & verbose:
+    while (j < iterNum):
+        if j % 25 == 0:
             value, grad = fAndG_matrix(A=A, E=E, V=V)
             print("Iteration number: ")
             print(j)
@@ -157,7 +158,8 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9 , 
         j += 1
     return E
 
-def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gama=0.9):
+@jit(nopython=True, parallel=True)
+def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gama=0.9,projection='BBS'):
     '''
     :param A: gene expression matrix
     :param E: permutation matrix initial value
@@ -186,7 +188,7 @@ def sga_matrix_momentum_indicator(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1
         j += 1
     return E
 
-def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1):
+def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, projection='BBS'):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     :param A: gene expression matrix
@@ -201,11 +203,11 @@ def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1)
     n = A.shape[0]
     p = A.shape[1]
     V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr)
+    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr, projection=projection)
     E_recon = reconstruct_e(E)
     return E, E_recon
 
-def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1 , verbose=True , final_loss=False):
+def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, projection='BBS'):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     :param A: gene expression matrix
@@ -214,18 +216,14 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1 , ve
     :param gama: momentum parameter
     :return: permutation matrix
     '''
-    A = np.array(A).astype('float64')
     if batch_size==None:
         batch_size= int((A.shape[0])*0.75)
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
     V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr , verbose=verbose)
+    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr, projection=projection)
     E_recon = reconstruct_e(E)
-    if final_loss:
-        value, grad = fAndG_matrix(A=((1/A.shape[0])*A), E=E_recon, V=V.T)
-        return E, E_recon , value
     return E, E_recon
 
 def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500):
@@ -236,7 +234,6 @@ def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500):
     :param lr: learning rate
     :return: diagonal filtering matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
@@ -254,7 +251,6 @@ def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1):
     :param lr: learning rate
     :return: diagonal filtering matrix
     '''
-    A = np.array(A).astype('float64')
     V = cell_normalization(A)
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
@@ -270,7 +266,6 @@ def filter_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25):
     :param lr: learning rate
     :return: diagonal filtering matrix
     '''
-    A = np.array(A).astype('float64')
     V = cell_normalization(A)
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
@@ -303,7 +298,6 @@ def filter_linear_genes_line(A, regu=0.1, iterNum=500, lr=0.1 , verbosity=25 , m
     :param lr: learning rate
     :return: diagonal filtering matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     p = A.shape[1]
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
@@ -322,7 +316,6 @@ def filter_non_cyclic_genes_line(A, regu=0.1, iterNum=500, lr=0.1, verbosity=25)
     :param lr: learning rate
     :return: diagonal filtering matrix
     '''
-    A = np.array(A).astype('float64')
     V = cell_normalization(A)
     p = V.shape[1]
     U =ge_to_spectral_matrix(V)
@@ -498,7 +491,6 @@ def calculate_roc_auc(y_target, y_true):
 
 
 def filter_full(A, regu=0.1, iterNum=300):
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
@@ -507,7 +499,7 @@ def filter_full(A, regu=0.1, iterNum=300):
     F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum)
     return F
 
-def enhancement_cyclic_per_gene(A, regu=0.1, iterNum=300):
+def enhancement_cyclic(A, regu=0.1, iterNum=300):
     ''' Enhancement of cyclic signal
     :param A: Gene expression matrix (reordered according to cyclic ordering)
     :param regu: regularization coefficient
@@ -518,22 +510,7 @@ def enhancement_cyclic_per_gene(A, regu=0.1, iterNum=300):
     n = A.shape[0]
     p = A.shape[1]
     V =ge_to_spectral_matrix(A)
-    F = np.ones(A.shape)
-    for i in range(p):
-        F[:,i] = stochastic_gradient_ascent_full(A[:,i], F=np.ones(A.shape[0]), V=V.T, regu=regu, iterNum=iterNum)
-    return F
-
-def enhancement_cyclic(A, regu=0.1, iterNum=300 , verbosity=25):
-    ''' Enhancement of cyclic signal
-    :param A: Gene expression matrix (reordered according to cyclic ordering)
-    :param regu: regularization coefficient
-    :param iterNum: iteration number
-    :return: filtering matrix
-    '''
-    A = np.array(A).astype('float64')
-    A = cell_normalization(A)
-    V =ge_to_spectral_matrix(A)
-    F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum , verbosity=verbosity)
+    F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum)
     return F
 
 def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7, optimize_alpha=True, line_search=True):
@@ -543,7 +520,6 @@ def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7, opt
     :param iterNum: iteration number
     :return: filtering matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     V = ge_to_spectral_matrix(A , optimize_alpha=optimize_alpha)
     print("starting filtering")
@@ -560,7 +536,6 @@ def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity = 25 , error=10
     :param iterNum: iteration number
     :return: filtering matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
@@ -577,7 +552,6 @@ def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity = 25 , error=10
 #    return F
 
 def filter_cyclic_full_line(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e-7):
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     V = ge_to_spectral_matrix(A)
     print("starting filtering")
@@ -585,7 +559,6 @@ def filter_cyclic_full_line(A, regu=0.1, iterNum=300, verbosity = 25 , error=10e
     return F
 
 def filter_non_cyclic_full_reverse(A, regu=0.1, iterNum=300):
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     V = ge_to_spectral_matrix(A)
     F = gradient_descent_full_line(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum)
@@ -608,7 +581,7 @@ def gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400):
     return F
 
 @jit(nopython=True, parallel=True)
-def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm='L1' , verbosity=25):
+def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , regu_norm='L1'):
     '''
     :param A: gene expression matrix
     :param F: filtering matrix
@@ -625,7 +598,7 @@ def stochastic_gradient_ascent_full(A, F, V, regu, epsilon=0.1, iterNum=400 , re
     epsilon_t = epsilon
     VVT = V.dot(V.T)
     while (j < iterNum):
-        if j % verbosity == 1:
+        if j % 25 == 1:
             value, grad = fAndG_full_acc(A=A, B=F, V=V, VVT=VVT, alpha=regu, regu_norm=regu_norm)
             print("Iteration number: ")
             print((j))
@@ -840,7 +813,6 @@ def sga_m_linear_reorder_rows_matrix(A, iterNum=1000, batch_size=400):
 
 
 def filter_non_cyclic_genes_vector(A, alpha=0.99, regu=2, iterNum=500):
-    A = np.array(A).astype('float64')
     A = gene_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
@@ -853,7 +825,6 @@ def filter_non_cyclic_genes_vector(A, alpha=0.99, regu=2, iterNum=500):
 
 
 def filter_linear_full(A, method, regu=0.1, iterNum=300 , lr=0.1, regu_norm='L1'):
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(ngenes=A.shape[1], optimized_alpha=False, eigenvals=real_eigenvalues)
@@ -870,7 +841,6 @@ def enhancement_linear(A, regu=0.1, iterNum=300 , method='numeric'):
     :param iterNum: iteration number
     :return: filtering matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
@@ -887,7 +857,7 @@ def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 ,
     :param iterNumenhance_linear_full: iteration number
     :return: filtering matrix
     '''
-    A = np.array(A).astype('float64')
+
     A = cell_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     print(A.shape)
@@ -906,7 +876,6 @@ def filtering_linear(A, method,regu=0.1, iterNum=300, verbosity = 25 ,
 #
 
 def enhance_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
-    A = np.array(A).astype('float64')
     A = gene_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
@@ -921,7 +890,6 @@ def enhance_linear_genes(A, method, regu=2, iterNum=500, lr=0.1):
 
 
 def filter_linear_genes(A, method='numeric', regu=2, iterNum=500, lr=0.1):
-    A = np.array(A).astype('float64')
     A = gene_normalization(A)
     real_eigenvalues, real_vec = linalg.eig(A.dot(A.T))
     alpha = get_alpha(optimized_alpha=True, eigenvals=real_eigenvalues)
@@ -1038,7 +1006,6 @@ def reorder_indicator(A,IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
     :param gama: momentum parameter
     :return: permutation matrix
     '''
-    A = np.array(A).astype('float64')
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
@@ -1053,45 +1020,5 @@ def reorder_indicator(A,IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
     return E, E_recon
 
 
-def enhance_general_topology(A, V, regu=0.5, iterNum=300):
-    A = np.array(A).astype('float64')
-    A = cell_normalization(A)
-    F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V, regu=regu, iterNum=iterNum)
-    return F
-
-def gene_inference_general_topology(A, V, regu=0.5, iterNum=100 , lr=0.1):
-    A = np.array(A).astype('float64')
-    A = gene_normalization(A)
-    p  =A.shape[1]
-    D = gradient_ascent_filter_matrix(A, D=np.identity((p))/2, U=V, regu=regu, lr=lr, iterNum=iterNum)
-    return D
 
 
-
-def sort_data_crit(adata,crit,crit_list):
-    '''
-    Sort the cells of an AnnData object according to a field (obs)
-    :param adata: AnnData to be sorted
-    :param crit: 'obs' field
-    :param crit_list: list of 'obs' possible values, sorted according to the desired ordering (e.g ['0','6','12','18])
-    :return:
-    '''
-    adata = shuffle_adata(adata) #for avoiding batch effects
-    layers = [[] for i in range(len(crit_list))]
-    obs = adata.obs
-    for i, row in obs.iterrows():
-        layer = (row[crit])
-        for j , item in enumerate(crit_list):
-            if item==layer:
-                layers[j].append(i)
-    order = sum(layers, [])
-    sorted_data = adata[order,:]
-    return sorted_data
-
-def E_to_range(E):
-    order =[]
-    for i in range(E.shape[0]):
-        for j in range(E.shape[1]):
-            if E[i,j]==1:
-                order.append(j)
-    return np.array(order)
