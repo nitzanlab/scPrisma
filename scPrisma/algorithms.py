@@ -208,7 +208,7 @@ def function_and_gradient_matrix(A, E, V):
 
     Returns
     -------
-    functionValue: int
+    functionValue: float
         function value
     gradient: np.array
         gradient of E
@@ -222,7 +222,7 @@ def function_and_gradient_matrix(A, E, V):
 @jit(nopython=True, parallel=True)
 def g_matrix(A, E, VVT):
     '''
-    Calculate the function value and the gradient of A matrix, using boosted formula
+    Calculate the gradient of A matrix, using boosted formula
     Parameters
     ----------
     A: np.array
@@ -1717,3 +1717,35 @@ def e_to_range(E):
             if E[i, j] == 1:
                 order.append(j)
     return np.array(order)
+
+def filter_general_covariance(A, cov, regu=0, epsilon=0.1, iterNum=100, regu_norm='L1', device='cpu'):
+    """
+    Filters `adata` based on a discrete label by running gradient descent with L1 regularization.
+
+    Parameters
+    ----------
+    A : ndarray
+        AnnData object to filter.
+    cov : ndarray
+        The covariance matrix to calculate eigenvalues and eigenvectors for.
+    regu : float
+        Regularization coefficient.
+    epsilon : float, optional
+        Step size (learning rate).
+    iterNum : int, optional
+        Number of iterations to run gradient descent.
+    regu_norm : str, optional
+        Regularization norm to use, either 'L1' or 'L2'.
+    device : str, optional
+        Device to use for computations, either 'cpu' or 'cuda'.
+
+    Returns
+    -------
+    F: np.array
+         Filtering matrix
+    """
+    B = A.copy()
+    V = np.array(get_theoretic_eigen(cov)).astype(float)
+    B = normalize(B, axis=1, norm='l2')
+    F = gradient_descent_full(B, np.ones(B.shape).astype(float), V=V, regu=regu, epsilon=epsilon, iterNum=iterNum)
+    return F

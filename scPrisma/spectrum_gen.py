@@ -3,16 +3,26 @@ import math
 from numpy import  random
 from numpy import linalg
 from scipy import sparse
-#from pre_processing import *
+from scPrisma.pre_processing import *
 from numba import jit
 
 @jit(nopython=True, parallel=True)
 def generate_eigenvectors_circulant(n, alpha=0.9999):
-    '''
-    :param n: number of cells
-    :param alpha: correlation between neighbors
-    :return: eigen vectors and eigen values of circulant matrix
-    '''
+    """
+    Generate eigenvectors and eigenvalues for a circulant matrix.
+
+    Parameters
+    ----------
+    n : int
+        Number of cells.
+    alpha : float, optional
+        Correlation between neighbors, by default 0.9999
+
+    Returns
+    -------
+    tuple of np.ndarray
+        Tuple containing eigenvectors matrix and eigenvalues vector
+    """
     eigen_vectors = []
     for i in range(n):
         v = np.zeros(n)
@@ -25,19 +35,28 @@ def generate_eigenvectors_circulant(n, alpha=0.9999):
             if k < n / 2:
                 eigen_values[i] += (alpha ** k) * math.cos((2 * math.pi * i * k) / n)
             else:
-                eigen_values[i] += (alpha ** (n-k)) * math.cos((2 * math.pi * i * k) / n)
-    return np.array(eigen_vectors) , np.array(eigen_values)
-
+                eigen_values[i] += (alpha ** (n - k)) * math.cos((2 * math.pi * i * k) / n)
+    return np.array(eigen_vectors), np.array(eigen_values)
 
 
 def generate_spectral_matrix(n, alpha=0.99):
-    '''
-    :param n: number of cells
-    :param alpha: correlation between neighbors
-    :return: spectral matrix, each eigenvector is multiplied by the sqrt of the appropriate eigenvalue
-    '''
+    """
+    Generate a spectral matrix by multiplying each eigenvector with the square root of the appropriate eigenvalue.
+
+    Parameters
+    ----------
+    n : int
+        Number of cells.
+    alpha : float, optional
+        Correlation between neighbors, by default 0.99
+
+    Returns
+    -------
+    np.ndarray
+        Spectral matrix
+    """
     return generate_spectral_matrix_tmp(n,alpha)
-    #return generate_spectral_matrix_inner(n,np.array(alpha))
+
 
 @jit(nopython=True, parallel=True)
 def generate_spectral_matrix_inner(n, alpha):
@@ -244,17 +263,51 @@ def get_linear_eig_data(ncells, alpha, method, normalize_vectors):
 
 
 
+#def get_theoretic_eigen(cov, n_values=None):
+#    if n_values==None:
+#        n_values= cov.shape[0]
+#    eig_vals, eig_vecs = linalg.eigh(cov)
+#    idx = eig_vals.argsort()[::-1]
+#    eig_vals = eig_vals[idx]
+#    eig_vecs = eig_vecs[:,idx]
+#    eig_vals = eig_vals[:n_values]
+#    eig_vecs = eig_vecs[:,:n_values]
+#    eig_vals = np.real(eig_vals)
+#    eig_vecs = np.real(eig_vecs)
+#    for i in range(eig_vals.size):
+#            eig_vecs[:, i] *= np.sqrt(eig_vals[i])
+#    return eig_vecs
+
 def get_theoretic_eigen(cov, n_values=None):
-    if n_values==None:
-        n_values= cov.shape[0]
-    eig_vals, eig_vecs = linalg.eigh(cov)
+    """
+    Calculate the theoretical eigenvalues and eigenvectors of a given covariance matrix.
+
+    Parameters
+    ----------
+    cov : ndarray
+        The covariance matrix to calculate eigenvalues and eigenvectors for.
+    n_values : int, optional
+        The number of eigenvalues and eigenvectors to return. If not provided, all eigenvalues and eigenvectors are returned.
+
+    Returns
+    -------
+    ndarray
+        The eigenvectors of the covariance matrix.
+    """
+    if n_values == None:
+        n_values = cov.shape[0]
+    eig_vals, eig_vecs = np.linalg.eigh(cov)
     idx = eig_vals.argsort()[::-1]
     eig_vals = eig_vals[idx]
-    eig_vecs = eig_vecs[:,idx]
+    eig_vecs = eig_vecs[:, idx]
     eig_vals = eig_vals[:n_values]
-    eig_vecs = eig_vecs[:,:n_values]
+    eig_vecs = eig_vecs[:, :n_values]
     eig_vals = np.real(eig_vals)
     eig_vecs = np.real(eig_vecs)
+    first_non_positive = np.argmax(eig_vals <= 1e-5)
+    if first_non_positive != 0:
+        eig_vals = eig_vals[:first_non_positive]
+        eig_vecs = eig_vecs[:, :first_non_positive]
     for i in range(eig_vals.size):
-            eig_vecs[:, i] *= np.sqrt(eig_vals[i])
+        eig_vecs[:, i] *= np.sqrt(eig_vals[i])
     return eig_vecs

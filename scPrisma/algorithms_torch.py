@@ -10,8 +10,13 @@ from numba import jit
 def reconstruct_e(E_prob):
     '''
     Greedy algorithm to reconstruct permutation matrix from Bi-Stochastic matrix
-    :param E_prob: Bi-Stochastic matrix
-    :return: Permutation matrix
+    Parameters
+    ----------
+    E_prob: np.array
+        2D Bi-Stochastic matrix
+    Returns: np.array
+        2D Permutation matrix
+    -------
     '''
     res = []
     for i in range(E_prob.shape[0]):
@@ -29,8 +34,18 @@ def reconstruct_e(E_prob):
 
 def ge_to_spectral_matrix(A , optimize_alpha=True):
     '''
-    :param A: Gene expression matrix
-    :return: Theoretic spectral matrix
+    Parameters
+    ----------
+    A: np.array
+        Gene expression matrix
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula
+
+
+    Returns: np.array
+        spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
+    -------
+
     '''
     n=A.shape[0]
     p = A.shape[1]
@@ -48,8 +63,18 @@ def ge_to_spectral_matrix(A , optimize_alpha=True):
 
 def ge_to_spectral_matrix_torch(A , device):
     '''
-    :param A: Gene expression matrix
-    :return: Theoretic spectral matrix
+    Parameters
+    ----------
+    A: torch.tensor
+        Gene expression matrix
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula
+
+
+    Returns: torch.tensor
+        spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
+    -------
+
     '''
     n=A.shape[0]
     p = A.shape[1]
@@ -86,41 +111,82 @@ def generate_spectral_matrix_torch(n, device,alpha=0.99):
 
 
 
-def fAndG_matrix_torch(A, E, V):
+def function_and_gradient_matrix_torch(A, E, V):
     '''
     Calculate the function value and the gradient of A matrix
-    :param A: gene expression matrix
-    :param E: permutation matrix
-    :param V: spectral matrix
-    :return: function value, gradient of E
+    Parameters
+    ----------
+    A: torch.tensor
+        Gene expression matrix
+    E: torch.tensor
+        Bi-Stochastic matrix (should be constant)
+    V: torch.tensor:
+        Theoretical spectrum
+
+    Returns
+    -------
+    functionValue: float
+        function value
+    gradient: torch.tensor
+        gradient of E
     '''
     functionValue = torch.trace((((((V.T).mm(E)).mm(A)).mm(A.T)).mm(E.T)).mm(V))
     gradient = (2 * ((((V).mm(V.T)).mm(E)).mm(A)).mm(A.T))
 
     return functionValue, gradient
 
-def G_matrix_torch(A, E, VVT):
+def g_matrix_torch(A, E, VVT):
     '''
-    Calculate the gradient of A matrix
-    :param A: gene expression matrix
-    :param E: permutation matrix
-    :param V: spectral matrix
-    :return: gradient of E
+    Calculate the gradient of A matrix, using boosted formula
+    Parameters
+    ----------
+    A: torch.tensor
+        Gene expression matrix
+    E: torch.tensor
+        Bi-Stochastic matrix (should be constant)
+    VVT: torch.tensor:
+        Theoretical spectrum (V) multiplied by his transform (V.T)
+
+    Returns
+    -------
+    gradient: torch.tensor
+        gradient of E
     '''
     gradient = (2 * (((VVT).mm(E)).mm(A)).mm(A.T))
     return gradient
 
-def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1, gama=0.9 , verbose=True , device=None):
-    '''
-    :param A: gene expression matrix
-    :param E: permutation matrix initial value
-    :param V: Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix
-    :param iterNum: iteration number
-    :param batch_size: batch size
-    :param lr: learning rate
-    :param gama: momentum parameter
-    :return: permutation matrix
-    '''
+def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1, gamma=0.9 , verbose=True , device='cpu'):
+    """
+    Perform stochastic gradient ascent for matrix momentum optimization.
+
+    Parameters
+    ----------
+    A : torch.tensor
+        Gene expression matrix.
+    E : torch.tensor
+        Permutation matrix initial value.
+    V : torch.tensor
+        Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix.
+    step : torch.tensor
+        momentum step
+    iterNum : int, optional
+        Number of iteration, by default 400
+    batch_size : int, optional
+        batch size, by default 20
+    lr : float, optional
+        learning rate, by default 0.1
+    gamma : float, optional
+        momentum parameter, by default 0.9
+    verbose : bool, optional
+        Print iteration number if True, by default True
+    device : str, optional
+        Device to perform the computation on, by default 'cpu'
+
+    Returns
+    -------
+    np.ndarray
+        permutation matrix
+    """
     j = 0
     value = 0
     VVT = (V).mm(V.T) #for runtime optimization
@@ -138,15 +204,16 @@ def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1,
             print("Iteration number: ")
             print(j)
         A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
-        grad = G_matrix_torch(A=A_tmp, E=E, VVT=VVT)
-        step = epsilon_t * grad + gama * step
+        grad = g_matrix_torch(A=A_tmp, E=E, VVT=VVT)
+        step = epsilon_t * grad + gamma * step
         E = E + step
         E = BBS_torch(E=E, prev_E=prev_E, I=I, ones_m=ones_m)
         j += 1
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return E
 
-def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbose=True , device=None):
+
+def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbose=True , device='cpu'):
     '''
     :param A: gene expression matrix
     :param E: permutation matrix initial value
@@ -171,13 +238,13 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbo
     ones_m = ones_m.to(device)
     while (j < iterNum ):
         if (j % 25 == 0) & verbose:
-            value, grad = fAndG_matrix_torch(A=A, E=E, V=V)
+            value, grad = function_and_gradient_matrix_torch(A=A, E=E, V=V)
             print("Iteration number: ")
             print(j)
             print(" function value= ")
             print(value)
         A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
-        grad = G_matrix_torch(A=A_tmp, E=E, VVT=VVT)
+        grad = g_matrix_torch(A=A_tmp, E=E, VVT=VVT)
         E = E + epsilon_t * grad
         E = BBS_torch(E=E, prev_E=prev_E, I=I, ones_m=ones_m)
         j += 1
@@ -205,7 +272,7 @@ def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, 
         if j % 25 == 0:
             print("Iteration number: " + str(j) + " function value= " + str(value))
         A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
-        value, grad = fAndG_matrix_torch(A=A_tmp, E=E, V=V)
+        value, grad = function_and_gradient_matrix_torch(A=A_tmp, E=E, V=V)
         grad = grad
         step = epsilon_t * grad + gama * step
         E = E + step
@@ -354,7 +421,7 @@ def gradient_ascent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, ite
 
 
 def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-7, optimize_alpha=False, line_search=False):
-    ''' Filtering of cyclic signal
+    ''' Enhancement of cyclic signal
     :param A: Gene expression matrix (reordered according to cyclic ordering)
     :param regu: regularization coefficient
     :param iterNum: iteration number
@@ -380,14 +447,22 @@ def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10
     return F
 
 def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-7, optimize_alpha=False, line_search=False):
-    ''' Filtering of cyclic signal
-    :param A: Gene expression matrix (reordered according to cyclic ordering)
-    :param regu: regularization coefficient
-    :param iterNum: iteration number
-    :return: filtering matrix
-    '''
+    """
+    This function filters the cyclic signal by applying gradient descent method.
+    Parameters:
+    A (torch.tensor): The gene expression matrix reordered according to cyclic ordering.
+    regu (float, optional): The regularization coefficient. Default is 0.1.
+    iterNum (int, optional): The number of iterations for the gradient descent. Default is 300.
+    verbosity (int, optional): The verbosity level. Default is 25.
+    error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
+    optimize_alpha (bool, optional): Whether to optimize the regularization parameter. Default is True.
+    line_search (bool, optional): Whether to use line search. Default is True.
+
+    Returns:
+    torch.tensor: Filtering matrix.
+    """
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A , optimize_alpha=False)
+    V = ge_to_spectral_matrix(A , optimize_alpha=optimize_alpha)
     V= V.T
     F = torch.ones(A.shape).to(float)
     V =torch.from_numpy(V).to(float)
@@ -406,7 +481,7 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     return F
 
 
-def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1' , device=None):
+def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1' , device='cpu'):
     j = 0
     epsilon_t = epsilon
     while j < iterNum:
@@ -420,7 +495,20 @@ def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return F
 
-def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1' , device=None):
+def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1' , device='cpu'):
+    """
+    This function enhances the signal by applying gradient ascent method.
+    Parameters:
+    A (torch.tensor): The gene expression matrix.
+    F (torch.tensor): The enhancement matrix.
+    VVT (torch.tensor):  Spectral matrix.
+    regu (float): The regularization coefficient.
+    epsilon (float, optional): The step size. Default is 0.1.
+    iterNum (int, optional): The number of iterations for the gradient ascent. Default is 400.
+
+    Returns:
+    numpy.ndarray: The enhancement matrix.
+    """
     j = 0
     epsilon_t = epsilon
     while j < iterNum:
@@ -431,13 +519,14 @@ def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_
         F = F + epsilon_t * grad
         F = torch.clip(F,0,1)
         j += 1
+    del grad
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return F
 
 
 
 
-def G_full_torch(A, B, VVT, alpha, regu_norm='L2'):
+def G_full_torch(A, B, VVT, alpha):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
@@ -526,3 +615,44 @@ def filter_general_topology_torch(A, V, regu=0.5, iterNum=300):
     F = gradient_descent_full_torch(A,F=F,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
     return F
 
+
+
+
+def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, device='cpu'):
+    """
+    Filters `adata` based on a discrete label by running gradient descent with L1 regularization.
+
+    Parameters
+    ----------
+    A : ndarray
+        AnnData object to filter.
+    cov : ndarray
+        The covariance matrix to calculate eigenvalues and eigenvectors for.
+    regu : float
+        Regularization coefficient.
+    epsilon : float, optional
+        Step size (learning rate).
+    iterNum : int, optional
+        Number of iterations to run gradient descent.
+    regu_norm : str, optional
+        Regularization norm to use, either 'L1' or 'L2'.
+    device : str, optional
+        Device to use for computations, either 'cpu' or 'cuda'.
+
+    Returns
+    -------
+    F: np.array
+         Filtering matrix
+    """
+    B = A.copy()
+    V = torch.tensor(np.array(get_theoretic_eigen(cov)).astype(float), device=device)
+    VVT = (V).mm(V.T)
+    del V
+    B = normalize(B, axis=1, norm='l2')
+    B = torch.tensor(B.astype(float), device=device)
+    F_gpu = torch.tensor(np.ones(B.shape).astype(float), device=device)
+    F_gpu = gradient_descent_full_torch(B, F_gpu.type(torch.float), VVT=VVT, regu=regu, epsilon=epsilon, iterNum=iterNum)
+    del A, V
+    F = F_gpu.cpu().detach().numpy()
+    del F_gpu
+    return F
