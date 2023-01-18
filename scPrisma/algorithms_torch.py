@@ -371,8 +371,12 @@ def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
-    D = gradient_ascent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
-    return D.cpu().detach().numpy()
+    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
+    D = D_gpu.cpu().detach().numpy()
+    del T
+    del U
+    del A
+    return D
 
 
 def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
@@ -394,8 +398,12 @@ def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
-    D = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
-    return D.cpu().detach().numpy()
+    D_gpu = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
+    D = D_gpu.cpu().detach().numpy()
+    del T
+    del U
+    del A
+    return D
 
 
 def gradient_ascent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
@@ -474,13 +482,14 @@ def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10
     VVT = (V).mm(V.T)
     del V
     torch.cuda.empty_cache()
-    F = F.to(device)
+    F_gpu = F.to(device)
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F = gradient_ascent_full_torch(A,F,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    F_gpu = gradient_ascent_full_torch(A,F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    F = F_gpu.cpu().detach().numpy()
+    del F_gpu
     return F
-
 def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-7, optimize_alpha=False, line_search=False):
     """
     This function filters the cyclic signal by applying gradient descent method.
@@ -507,11 +516,15 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     VVT = (V).mm(V.T)
     del V
     torch.cuda.empty_cache()
-    F = F.to(device)
+    F_gpu = F.to(device)
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F = gradient_descent_full_torch(A,F,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    del A
+    del VVT
+    F = F_gpu.cpu().detach().numpy()
+    del F_gpu
     return F
 
 
@@ -605,11 +618,13 @@ def enhance_general_topology_torch(A, V, regu=0.5, iterNum=300):
     VVT = (V).mm(V.T)
     del V
     torch.cuda.empty_cache()
-    F = F.to(device)
+    F_gpu = F.to(device)
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F = gradient_ascent_full_torch(A, F=F, VVT=VVT, regu=regu, iterNum=iterNum)
+    F_gpu = gradient_ascent_full_torch(A, F=F_gpu, VVT=VVT, regu=regu, iterNum=iterNum)
+    F = F_gpu.cpu().detach().numpy()
+    del F_gpu
     return F
 
 def gene_inference_general_topology_torch(A, V, regu=0.5, iterNum=100 , lr=0.1):
@@ -641,13 +656,14 @@ def filter_general_topology_torch(A, V, regu=0.5, iterNum=300):
     VVT = (V).mm(V.T)
     del V
     torch.cuda.empty_cache()
-    F = F.to(device)
+    F_gpu = F.to(device)
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F = gradient_descent_full_torch(A,F=F,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    F_gpu = gradient_descent_full_torch(A,F=F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    F = F_gpu.cpu().detach().numpy()
+    del F_gpu
     return F
-
 
 
 
