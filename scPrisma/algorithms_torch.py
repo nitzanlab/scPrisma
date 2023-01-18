@@ -598,7 +598,7 @@ def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, 
     loss, grad = function_and_gradient_full_acc_torch(A=A, B=F, V=V, VVT=VVT, regu=regu, regu_norm=regu_norm)
     alpha = 1 / torch.norm(grad)
     prev_w = torch.zeros(w.shape, device=device)
-    while evals < max_evals and np.linalg.norm(w - prev_w) > error:
+    while evals < max_evals and torch.norm(w - prev_w) > error:
         prev_w = torch.copy(w)
         evals += 1
         if evals % verbosity == 0:
