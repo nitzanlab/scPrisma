@@ -520,7 +520,11 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+    if line_search:
+        F_gpu = gradient_descent_full_line_torch(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity,
+                                       error=error)
+    else:
+        F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
     del A
     del VVT
     F = F_gpu.cpu().detach().numpy()
@@ -541,6 +545,86 @@ def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu
         j += 1
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return F
+
+def function_and_gradient_full_acc_torch(A, B, V, VVT, regu, regu_norm):
+    """
+    Computes function value and gradient for the optimization problem with the added
+    advantage of precomputation of V.dot(V.T)
+
+    Parameters
+    ----------
+    A : numpy array
+        Gene expression matrix.
+    B : numpy array
+        Filtering matrix.
+    V : numpy array
+        Spectral matrix.
+    VVT : numpy array
+        The precomputed value of V.dot(V.T)
+    regu : float
+        Regularization coefficient.
+    regu_norm : str, optional
+        Type of regularization norm ('L1' or 'L2').
+
+    Returns
+    -------
+    tuple
+        A tuple containing the projection over theoretic spectrum and the gradient according to 'B'.
+    """
+    T_0 = (A * B)
+    t_1 = torch.norm(B, 1)
+    functionValue = (torch.trace((((V.T).mm(T_0)).mm(T_0.T)).mm(V)) - (regu * t_1))
+    gradient = ((2 * ((VVT).mm(T_0) * A)) - ((regu) * torch.sign(B)))
+    return functionValue, gradient
+
+def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, verbosity=float('inf'), error=1e-07, regu_norm='L1'):
+    """
+    The function gradient_descent_full_line filters the signal by applying gradient descent method with line search.
+    Parameters:
+    A (numpy.ndarray): The gene expression matrix.
+    F (numpy.ndarray): The filtering matrix.
+    V (numpy.ndarray): The theoretic spectrum of covariance matrix.
+    regu (float): The regularization coefficient.
+    gamma (float, optional): The parameter for line search step size. Default is 1e-04.
+    max_evals (int, optional): The maximum number of evaluations for the line search. Default is 250.
+    verbosity (float, optional): The verbosity of the output. Default is float('inf').
+    error (float, optional): The error tolerance for the line search. Default is 1e-07.
+    regu_norm (str, optional): The type of regularization to apply. Default is 'L1'.
+
+    Returns:
+    numpy.ndarray: The filtering matrix.
+    """
+    VVT = V.mm(V.T)
+    w = F
+    evals = 0
+    loss, grad = function_and_gradient_full_acc_torch(A=A, B=F, V=V, VVT=VVT, regu=regu, regu_norm=regu_norm)
+    alpha = 1 / np.linalg.norm(grad)
+    prev_w = np.zeros(w.shape)
+    while evals < max_evals and np.linalg.norm(w - prev_w) > error:
+        prev_w = np.copy(w)
+        evals += 1
+        if evals % verbosity == 0:
+            print((evals))
+            print('th Iteration    Loss :: ')
+            print((loss))
+        gTg = np.linalg.norm(grad)
+        gTg = gTg * gTg
+        new_w = w - alpha * grad
+        new_w = torch.clip(new_w,  0, 1)
+        new_loss, new_grad = function_and_gradient_full_acc_torch(A=A, B=new_w, V=V,
+                                            VVT=VVT, regu=regu, regu_norm=regu_norm)
+        while new_loss > loss - gamma * alpha * gTg:
+            alpha = ((alpha ** 2) * gTg) / (2 * (new_loss + alpha * gTg - loss))
+            new_w = w - alpha * grad
+            new_w = torch.clip(new_w, 0, 1)
+            new_loss, new_grad = function_and_gradient_full_acc_torch(A=A, B=new_w, V=V, VVT=VVT,
+                                                regu=regu, regu_norm=regu_norm)
+        alpha = min(1, 2 * (loss - new_loss) / gTg)
+        loss = new_loss
+        grad = new_grad
+        w = new_w
+    return w
+
 
 def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_norm ='L1' , device='cpu'):
     """
