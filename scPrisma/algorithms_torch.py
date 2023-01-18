@@ -519,7 +519,7 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     print(device)
     print("starting filtering")
     if line_search:
-        F_gpu = gradient_descent_full_line_torch(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity,
+        F_gpu = gradient_descent_full_line_torch(A, F=F_gpu, V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity,
                                        error=error)
     else:
         F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=(V).mm(V.T),regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
