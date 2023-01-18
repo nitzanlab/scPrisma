@@ -524,7 +524,6 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     else:
         F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=(V).mm(V.T),regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
     del A
-    del VVT
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
@@ -599,7 +598,7 @@ def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, 
     alpha = 1 / torch.norm(grad)
     prev_w = torch.zeros(w.shape, device=device)
     while evals < max_evals and torch.norm(w - prev_w) > error:
-        prev_w = torch.copy(w)
+        prev_w = torch.clone(w)
         evals += 1
         if evals % verbosity == 0:
             print((evals))
