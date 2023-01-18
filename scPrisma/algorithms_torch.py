@@ -221,7 +221,7 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbo
     :param iterNum: iteration number
     :param batch_size: batch size
     :param lr: learning rate
-    :param gama: momentum parameter
+    :param gamma: momentum parameter
     :return: permutation matrix
     '''
     j = 0
@@ -251,7 +251,7 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbo
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return E
 
-def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gama=0.9):
+def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gamma=0.9):
     '''
     :param A: gene expression matrix
     :param E: permutation matrix initial value
@@ -259,7 +259,7 @@ def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, 
     :param iterNum: iteration number
     :param batch_size: batch size
     :param lr: learning rate
-    :param gama: momentum parameter
+    :param gamma: momentum parameter
     :return: permutation matrix
     '''
     j = 0
@@ -274,20 +274,20 @@ def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, 
         A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
         value, grad = function_and_gradient_matrix_torch(A=A_tmp, E=E, V=V)
         grad = grad
-        step = epsilon_t * grad + gama * step
+        step = epsilon_t * grad + gamma * step
         E = E + step
         E = BBS_torch(E) * IN
         j += 1
     return E
 
 
-def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1 , verbose=True , final_loss=False, boosted=False):
+def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1 , verbose=True , final_loss=False, boosted=False):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     :param A: gene expression matrix
     :param iterNum:  iteration number
     :param batch_size: batch size
-    :param gama: momentum parameter
+    :param gamma: momentum parameter
     :return: permutation matrix
     '''
     if batch_size==None:
@@ -310,18 +310,18 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gama=0.5, lr=0.
     E = E.to(device)
     step = step.to(device)
     V = V.to(device)
-    E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gama=gama, device=device, lr=lr , verbose=verbose)
+    E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gamma=gamma, device=device, lr=lr , verbose=verbose)
     E = (E.cpu()).numpy()
     E_recon = reconstruct_e(E)
     return E ,  E_recon
 
-def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gama=0.9, lr=0.1 , verbose=True , final_loss=False, boosted=False):
+def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gamma=0.9, lr=0.1 , verbose=True , final_loss=False, boosted=False):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     :param A: gene expression matrix
     :param iterNum:  iteration number
     :param batch_size: batch size
-    :param gama: momentum parameter
+    :param gamma: momentum parameter
     :return: permutation matrix
     '''
     if batch_size==None:
@@ -346,7 +346,7 @@ def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gama=0.
     if ~boosted:
         V = V.to(device)
         print(V)
-        E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gama=gama, device=device, lr=lr , verbose=verbose)
+        E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gamma=gamma, device=device, lr=lr , verbose=verbose)
     else:
         V_1 = V[:,:int(n/4)]
         V_2 = V[:,int(n/4):]
