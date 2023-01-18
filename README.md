@@ -38,7 +38,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 git clone https://github.com/nitzanlab/scPrisma.git
 cd scPrisma
 pip install .
-For running the gpu version install it like so pip install .[gpu]
+For running the gpu version install it like so pip install ."[gpu]"
 ```
 ## Imports
 It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
