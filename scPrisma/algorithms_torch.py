@@ -40,12 +40,9 @@ def ge_to_spectral_matrix(A , optimize_alpha=True):
         Gene expression matrix
     optimize_alpha: bool
         Find the alpha value using optimization problem or by using the close formula
-
-
     Returns: np.array
         spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
     -------
-
     '''
     n=A.shape[0]
     p = A.shape[1]
@@ -69,12 +66,9 @@ def ge_to_spectral_matrix_torch(A , device):
         Gene expression matrix
     optimize_alpha: bool
         Find the alpha value using optimization problem or by using the close formula
-
-
     Returns: torch.tensor
         spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
     -------
-
     '''
     n=A.shape[0]
     p = A.shape[1]
@@ -122,7 +116,6 @@ def function_and_gradient_matrix_torch(A, E, V):
         Bi-Stochastic matrix (should be constant)
     V: torch.tensor:
         Theoretical spectrum
-
     Returns
     -------
     functionValue: float
@@ -146,7 +139,6 @@ def g_matrix_torch(A, E, VVT):
         Bi-Stochastic matrix (should be constant)
     VVT: torch.tensor:
         Theoretical spectrum (V) multiplied by his transform (V.T)
-
     Returns
     -------
     gradient: torch.tensor
@@ -158,7 +150,6 @@ def g_matrix_torch(A, E, VVT):
 def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1, gamma=0.9 , verbose=True , device='cpu'):
     """
     Perform stochastic gradient ascent for matrix momentum optimization.
-
     Parameters
     ----------
     A : torch.tensor
@@ -181,7 +172,6 @@ def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1,
         Print iteration number if True, by default True
     device : str, optional
         Device to perform the computation on, by default 'cpu'
-
     Returns
     -------
     np.ndarray
@@ -377,13 +367,10 @@ def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U= U.T
     A = gene_normalization(A)
     T = np.ones((p))/2
-    A = torch.from_numpy(A)
-    U = torch.from_numpy(U)
-    T = torch.from_numpy(T)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    A = A.to(device)
-    U = U.to(device)
-    T = T.to(device)
+    A = torch.tensor(A.astype(float), device=device)
+    U = torch.tensor(U.astype(float), device=device)
+    T = torch.tensor(T.astype(float), device=device)
     D = gradient_ascent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
     return D
 
@@ -403,13 +390,10 @@ def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U= U.T
     A = gene_normalization(A)
     T = np.ones((p))/2
-    A = torch.from_numpy(A)
-    U = torch.from_numpy(U)
-    T = torch.from_numpy(T)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    A = A.to(device)
-    U = U.to(device)
-    T = T.to(device)
+    A = torch.tensor(A.astype(float), device=device)
+    U = torch.tensor(U.astype(float), device=device)
+    T = torch.tensor(T.astype(float), device=device)
     D = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
     return D
 
@@ -508,7 +492,6 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
     optimize_alpha (bool, optional): Whether to optimize the regularization parameter. Default is True.
     line_search (bool, optional): Whether to use line search. Default is True.
-
     Returns:
     torch.tensor: Filtering matrix.
     """
@@ -556,7 +539,6 @@ def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_
     regu (float): The regularization coefficient.
     epsilon (float, optional): The step size. Default is 0.1.
     iterNum (int, optional): The number of iterations for the gradient ascent. Default is 400.
-
     Returns:
     numpy.ndarray: The enhancement matrix.
     """
@@ -672,7 +654,6 @@ def filter_general_topology_torch(A, V, regu=0.5, iterNum=300):
 def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, device='cpu'):
     """
     Filters `adata` based on a discrete label by running gradient descent with L1 regularization.
-
     Parameters
     ----------
     A : ndarray
@@ -689,7 +670,6 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
         Regularization norm to use, either 'L1' or 'L2'.
     device : str, optional
         Device to use for computations, either 'cpu' or 'cuda'.
-
     Returns
     -------
     F: np.array
@@ -726,4 +706,3 @@ def e_to_range(E):
             if E[i, j] == 1:
                 order.append(j)
     return np.array(order)
-
