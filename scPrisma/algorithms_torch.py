@@ -575,7 +575,7 @@ def function_and_gradient_full_acc_torch(A, B, V, VVT, regu, regu_norm):
     gradient = ((2 * ((VVT).mm(T_0) * A)) - ((regu) * torch.sign(B)))
     return functionValue, gradient
 
-def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, verbosity=float('inf'), error=1e-07, regu_norm='L1'):
+def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, verbosity=float('inf'), error=1e-07, regu_norm='L1', device='cpu'):
     """
     The function gradient_descent_full_line filters the signal by applying gradient descent method with line search.
     Parameters:
@@ -596,16 +596,16 @@ def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, 
     w = F
     evals = 0
     loss, grad = function_and_gradient_full_acc_torch(A=A, B=F, V=V, VVT=VVT, regu=regu, regu_norm=regu_norm)
-    alpha = 1 / np.linalg.norm(grad)
-    prev_w = np.zeros(w.shape)
+    alpha = 1 / torch.norm(grad)
+    prev_w = torch.zeros(w.shape, device=device)
     while evals < max_evals and np.linalg.norm(w - prev_w) > error:
-        prev_w = np.copy(w)
+        prev_w = torch.copy(w)
         evals += 1
         if evals % verbosity == 0:
             print((evals))
             print('th Iteration    Loss :: ')
             print((loss))
-        gTg = np.linalg.norm(grad)
+        gTg = torch.norm(grad)
         gTg = gTg * gTg
         new_w = w - alpha * grad
         new_w = torch.clip(new_w,  0, 1)
@@ -621,6 +621,7 @@ def gradient_descent_full_line_torch(A, F, V, regu, gamma=1e-04, max_evals=250, 
         loss = new_loss
         grad = new_grad
         w = new_w
+    del grad, loss ,prev_w
     return w
 
 
