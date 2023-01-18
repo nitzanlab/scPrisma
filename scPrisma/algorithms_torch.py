@@ -656,3 +656,23 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
+
+def e_to_range(E):
+    """
+    Convert the permutation matrix to a range of integers representing the order of rows.
+    Parameters
+    ----------
+    E : numpy array
+        The permutation matrix.
+    Returns
+    -------
+    numpy array
+        The range of integers representing the order of rows.
+    """
+    order = []
+    for i in range(E.shape[0]):
+        for j in range(E.shape[1]):
+            if E[i, j] == 1:
+                order.append(j)
+    return np.array(order)
+
