@@ -372,7 +372,7 @@ def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
     D = gradient_ascent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
-    return D
+    return D.cpu().detach().numpy()
 
 
 def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
@@ -395,7 +395,7 @@ def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
     D = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
-    return D
+    return D.cpu().detach().numpy()
 
 
 def gradient_ascent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
@@ -522,7 +522,7 @@ def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu
         if j % 100 == 1:
             print("Iteration number: " + str(j))
         epsilon_t *= 0.995
-        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu, regu_norm=regu_norm)
+        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu)
         F = F - epsilon_t * grad
         F = torch.clip(F,0,1)
         j += 1
@@ -548,7 +548,7 @@ def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_
         if j % 100 == 1:
             print("Iteration number: " + str(j))
         epsilon_t *= 0.995
-        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu, regu_norm=regu_norm)
+        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu)
         F = F + epsilon_t * grad
         F = torch.clip(F,0,1)
         j += 1
@@ -627,7 +627,7 @@ def gene_inference_general_topology_torch(A, V, regu=0.5, iterNum=100 , lr=0.1):
     del A
     del V
     del T
-    return D
+    return D.cpu().detach().numpy()
 
 
 def filter_general_topology_torch(A, V, regu=0.5, iterNum=300):
