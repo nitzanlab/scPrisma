@@ -513,8 +513,6 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = A.to(device)
     V = V.to(device)
-    VVT = (V).mm(V.T)
-    del V
     torch.cuda.empty_cache()
     F_gpu = F.to(device)
     print(A.get_device())
@@ -524,7 +522,7 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-
         F_gpu = gradient_descent_full_line_torch(A, F=np.ones(A.shape), V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity,
                                        error=error)
     else:
-        F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=VVT,regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
+        F_gpu = gradient_descent_full_torch(A,F_gpu,VVT=(V).mm(V.T),regu=regu,epsilon=0.1,iterNum=iterNum , device=device)
     del A
     del VVT
     F = F_gpu.cpu().detach().numpy()
