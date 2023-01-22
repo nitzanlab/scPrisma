@@ -1816,3 +1816,32 @@ def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent
     A = gene_normalization(A)
     D =  filter_genes_by_proj(A=A, V=V.T, n_genes=n_genes, percent_genes=percent_genes)
     return D
+
+def sort_data_crit(adata,crit,crit_list):
+    '''
+    Sort the cells of an AnnData object according to a field (obs)
+    :param adata: AnnData to be sorted
+    :param crit: 'obs' field
+    :param crit_list: list of 'obs' possible values, sorted according to the desired ordering (e.g ['0','6','12','18])
+    :return:
+    '''
+    adata = shuffle_adata(adata) #for avoiding batch effects
+    layers = [[] for i in range(len(crit_list))]
+    obs = adata.obs
+    for i, row in obs.iterrows():
+        layer = (row[crit])
+        for j , item in enumerate(crit_list):
+            if item==layer:
+                layers[j].append(i)
+    order = sum(layers, [])
+    sorted_data = adata[order,:]
+    return sorted_data
+
+def shuffle_adata(adata):
+    '''
+    Shuffle the rows(obs/cells) of adata
+    :param adata: adata
+    :return: shuffled adata
+    '''
+    perm = np.random.permutation(range(adata.X.shape[0]))
+    return adata[perm,:]
