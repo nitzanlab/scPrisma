@@ -241,34 +241,6 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1 , verbo
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     return E
 
-def sga_matrix_momentum_indicator_torch(A, E, V,IN, iterNum=400, batch_size=20, lr=0.1, gamma=0.9):
-    '''
-    :param A: gene expression matrix
-    :param E: permutation matrix initial value
-    :param V: Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix
-    :param iterNum: iteration number
-    :param batch_size: batch size
-    :param lr: learning rate
-    :param gamma: momentum parameter
-    :return: permutation matrix
-    '''
-    j = 0
-    value = 0
-    epsilon_t = lr
-    step = torch.zeros(E.shape)
-    E = E * IN
-    E = BBS_torch(E) * IN
-    while (j < iterNum):
-        if j % 25 == 0:
-            print("Iteration number: " + str(j) + " function value= " + str(value))
-        A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
-        value, grad = function_and_gradient_matrix_torch(A=A_tmp, E=E, V=V)
-        grad = grad
-        step = epsilon_t * grad + gamma * step
-        E = E + step
-        E = BBS_torch(E) * IN
-        j += 1
-    return E
 
 
 def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1 , verbose=True , final_loss=False, boosted=False):
@@ -287,11 +259,8 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     V = ge_to_spectral_matrix(A , optimize_alpha=False)
-    A = torch.from_numpy(A)
-    A = A.type(torch.float32)
-    A = A.float()
-    V = torch.from_numpy(V.T )
-    V = V.type(torch.float32)
+    A = torch.tensor(A.astype(float), device=device)
+    V = torch.tensor(V.astype(float), device=device)
     E = torch.ones((n,n) )
     E = E.type(torch.float32)
     step = torch.zeros(E.shape )
@@ -299,11 +268,11 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     A = A.to(device)
     E = E.to(device)
     step = step.to(device)
-    V = V.to(device)
     E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gamma=gamma, device=device, lr=lr , verbose=verbose)
-    E = (E.cpu()).numpy()
-    E_recon = reconstruct_e(E)
-    return E ,  E_recon
+    E_cpu = (E.cpu()).numpy()
+    E_recon = reconstruct_e(E_cpu)
+    del A, E, V , step
+    return E_cpu, E_recon
 
 def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gamma=0.9, lr=0.1 , verbose=True , final_loss=False, boosted=False):
     '''
@@ -490,6 +459,7 @@ def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
+
 def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity = 25 , error=10e-7, optimize_alpha=False, line_search=False):
     """
     This function filters the cyclic signal by applying gradient descent method.
@@ -536,7 +506,7 @@ def gradient_descent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu
         if j % 100 == 1:
             print("Iteration number: " + str(j))
         epsilon_t *= 0.995
-        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu)
+        grad = G_full_torch(A=A, B=F, VVT=VVT, regu=regu)
         F = F - epsilon_t * grad
         F = torch.clip(F,0,1)
         j += 1
@@ -643,7 +613,7 @@ def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_
         if j % 100 == 1:
             print("Iteration number: " + str(j))
         epsilon_t *= 0.995
-        grad = G_full_torch(A=A, B=F, VVT=VVT, alpha=regu)
+        grad = G_full_torch(A=A, B=F, VVT=VVT, regu=regu)
         F = F + epsilon_t * grad
         F = torch.clip(F,0,1)
         j += 1
@@ -654,16 +624,16 @@ def gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=400 , regu_
 
 
 
-def G_full_torch(A, B, VVT, alpha):
+def G_full_torch(A, B, VVT, regu):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
     :param V: spectral matrix
-    :param alpha: correlation between neighbors
+    :param regu: correlation between neighbors
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
     T_0 = (A * B)
-    gradient = ((2 * ((VVT).mm(T_0) * A)) - ((alpha ) * torch.sign(B)))
+    gradient = ((2 * ((VVT).mm(T_0) * A)) - ((regu ) * torch.sign(B)))
     return gradient
 
 
@@ -804,3 +774,129 @@ def e_to_range(E):
             if E[i, j] == 1:
                 order.append(j)
     return np.array(order)
+
+def reorder_indicator_torch(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
+    """
+    Cyclic reorder rows of a gene expression matrix using stochastic gradient ascent. With optional usage of prior knowledge.
+
+    Parameters
+    ----------
+    A : torch.tensor
+        The gene expression matrix.
+    IN : torch.tensor
+        The indicator matrix.
+    iterNum : int, optional
+        Number of iterations. Default is 300.
+    batch_size : int, optional
+        Batch size. Default is 20.
+    gamma : float, optional
+        Momentum parameter. Default is 0.
+    lr : float, optional
+        Learning rate. Default is 0.1.
+
+    Returns
+    -------
+    tuple of torch.tensor
+        Permutation matrix (which is calculated by greedy rounding of 'E' matrix).
+    """
+    if batch_size==None:
+        batch_size= int((A.shape[0])*0.75)
+    A = cell_normalization(A)
+    n = A.shape[0]
+    p = A.shape[1]
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    V = ge_to_spectral_matrix(A , optimize_alpha=False)
+    A = torch.tensor(A.astype(float), device=device)
+    IN = torch.tensor(IN.astype(float), device=device)
+    V = torch.tensor(V.astype(float), device=device)
+    E = torch.ones((n,n) )
+    E = E.type(torch.float32)
+    step = torch.zeros(E.shape )
+    step = step.type(torch.float32)
+    A = A.to(device)
+    E = E.to(device)
+    step = step.to(device)
+    E = E * IN
+    E = BBS_torch(E)
+    E = sga_matrix_momentum_indicator_torch(A, E, V=V.T, IN=IN, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr, step=step)
+    E_cpu = (E.cpu()).numpy()
+    E_recon = reconstruct_e(E_cpu)
+    del A, E, V, IN , step
+    return E_cpu, E_recon
+
+def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_size=20, lr=0.1, gamma=0.9):
+    '''
+    Reconstruction algorithm with optional use of prior knowledge
+    Parameters
+    ----------
+    A: torch.tensor
+        Gene expression matrix
+    E: torch.tensor
+        Initial Bi-Stochastic matrix (should be constant)
+    V: torch.tensor:
+        Theoretical spectrum
+    IN: torch.tensor:
+        Indicator matrix which will be later entry-wise multiplied by the permutation matrix
+    iterNum: int
+        Number of stochastic gradient ascent iterations
+    batch_size: int
+        batch size, number of genes sampled per batch
+    lr: float
+        Learning rate
+    gamma: float
+        Momentum parameter
+
+    Returns
+        E: torch.tensor
+            Bi-Stochastic matrix
+
+    -------
+    '''
+    j = 0
+    value = 0
+    epsilon_t = lr
+    E = E * IN
+    E = BBS_torch(E) * IN
+    while (j < iterNum):
+        if j % 25 == 0:
+            print("Iteration number: " + str(j) + " function value= " + str(value))
+        A_tmp = A[:, torch.randint(low= 0, high= A.shape[1], size=(batch_size,))]
+        value, grad = function_and_gradient_matrix_torch(A=A_tmp, E=E, V=V)
+        grad = grad
+        step = epsilon_t * grad + gamma * step
+        E = E + step
+        E = BBS_torch(E) * IN
+        j += 1
+    return E
+
+def stochastic_gradient_ascent_full_torch(A, F, V, regu, epsilon=0.1, iterNum=400, regu_norm='L1', verbosity=25):
+    """
+    This function enhances the cyclic signal by applying stochastic gradient ascent method.
+    Parameters:
+    A (torch.tensor): The gene expression matrix.
+    F (torch.tensor): The enhancement matrix.
+    V (torch.tensor): The theoretic spectrum of covariance matrix.
+    regu (float): The regularization coefficient.
+    epsilon (float, optional): The step size. Default is 0.1.
+    iterNum (int, optional): The number of iterations for the gradient ascent. Default is 400.
+    regu_norm (str, optional): The type of regularization to apply. Default is 'L1'.
+    verbosity (int, optional): The verbosity level. Default is 25.
+
+    Returns:
+    torch.tensor: The enhancement matrix.
+    """
+    j = 0
+    epsilon_t = epsilon
+    VVT = V.mm(V.T)
+    while (j < iterNum):
+        if j % verbosity == 1:
+            value, grad = function_and_gradient_full_acc_torch(A=A, B=F, V=V, VVT=VVT, regu=regu, regu_norm=regu_norm)
+            print("Iteration number: ")
+            print((j))
+            print("function value: ")
+            print((value))
+        epsilon_t *= 0.995
+        grad = G_full_torch(A=A, B=F, VVT=VVT, regu=regu)
+        F = F + epsilon_t * (grad + torch.normal(0, 0.01, grad.shape))
+        j += 1
+    return F

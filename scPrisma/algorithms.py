@@ -242,7 +242,7 @@ def g_matrix(A, E, VVT):
 
 
 @jit(nopython=True, parallel=True)
-def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, verbose=True):
+def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gamma=0.9, verbose=True):
     """
     Perform stochastic gradient ascent optimization with momentum to find the optimal value of the bi-stochastic matrix E.
 
@@ -260,7 +260,7 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, v
         The number of examples to use in each batch for the gradient descent updates. Default is 20.
     lr : float, optional
         The learning rate for the gradient ascent updates. Default is 0.1.
-    gama : float, optional
+    gamma : float, optional
         The momentum parameter. Default is 0.9.
     verbose : bool, optional
         A flag indicating whether to print the iteration number and function value every 25 iterations. Default is True.
@@ -300,7 +300,7 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, v
         grad = g_matrix(A=A_tmp, E=E, VVT=VVT)
 
         # Update the momentum step
-        step = epsilon_t * grad + gama * step
+        step = epsilon_t * grad + gamma * step
 
         # Perform a gradient ascent update on E
         E = E + step
@@ -315,7 +315,7 @@ def sga_matrix_momentum(A, E, V, iterNum=400, batch_size=20, lr=0.1, gama=0.9, v
     return E
 
 
-def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.1, gama=0.9):
+def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.1, gamma=0.9):
     '''
     Reconstruction algorithm with optional use of prior knowledge
     Parameters
@@ -334,7 +334,7 @@ def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.
         batch size, number of genes sampled per batch
     lr: int
         Learning rate
-    gama: int
+    gamma: int
         Momentum parameter
 
     Returns
@@ -356,14 +356,14 @@ def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.
         A_tmp = A[:, np.random.randint(A.shape[1], size=batch_size)]
         value, grad = function_and_gradient_matrix(A=A_tmp, E=E, V=V)
         grad = grad
-        step = epsilon_t * grad + gama * step
+        step = epsilon_t * grad + gamma * step
         E = E + step
         E = BBS(E) * IN
         j += 1
     return E
 
 
-def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1):
+def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     Parameters
@@ -376,7 +376,7 @@ def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1)
         batch size, number of genes sampled per batch
     lr: int
         Learning rate
-    gama: int
+    gamma: int
         Momentum parameter
 
     Returns
@@ -393,12 +393,12 @@ def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1)
     n = A.shape[0]
     p = A.shape[1]
     V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr)
+    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr)
     E_recon = reconstruct_e(E)
     return E, E_recon
 
 
-def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, verbose=True, final_loss=False):
+def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, verbose=True, final_loss=False):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     Parameters
@@ -411,7 +411,7 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, ver
         batch size, number of genes sampled per batch
     lr: int
         Learning rate
-    gama: int
+    gamma: int
         Momentum parameter
     verbose: bool
         verbosity
@@ -432,7 +432,7 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gama=0.5, lr=0.1, ver
     n = A.shape[0]
     p = A.shape[1]
     V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr, verbose=verbose)
+    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr, verbose=verbose)
     E_recon = reconstruct_e(E)
     if final_loss:
         value, grad = function_and_gradient_matrix(A=((1 / A.shape[0]) * A), E=E_recon, V=V.T)
@@ -1498,8 +1498,9 @@ def numba_min_clip(A: np.ndarray, a_min: int) -> np.ndarray:
     np.ndarray
         clipped array
     """
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
+    n = A.shape[0]
+    for i in range(n):
+        for j in range(n):
             if A[i, j] < a_min:
                 A[i, j] = a_min
     return A
@@ -1603,7 +1604,7 @@ def BBS(E: np.ndarray, iterNum: int = 1000, early_exit: int = 15) -> np.ndarray:
     return E
 
 
-def reorder_indicator(A, IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
+def reorder_indicator(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
     """
     Cyclic reorder rows of a gene expression matrix using stochastic gradient ascent. With optional usage of prior knowledge.
 
@@ -1617,7 +1618,7 @@ def reorder_indicator(A, IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
         Number of iterations. Default is 300.
     batch_size : int, optional
         Batch size. Default is 20.
-    gama : float, optional
+    gamma : float, optional
         Momentum parameter. Default is 0.
     lr : float, optional
         Learning rate. Default is 0.1.
@@ -1634,7 +1635,7 @@ def reorder_indicator(A, IN, iterNum=300, batch_size=20, gama=0, lr=0.1):
     E = np.ones((n, n)) / n
     E = E * IN
     E = BBS(E)
-    E = sga_matrix_momentum_indicator(A, E, V=V.T, IN=IN, iterNum=iterNum, batch_size=batch_size, gama=gama, lr=lr)
+    E = sga_matrix_momentum_indicator(A, E, V=V.T, IN=IN, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr)
     E_recon = reconstruct_e(E)
     return E, E_recon
 
@@ -1745,3 +1746,73 @@ def filter_general_covariance(A, cov, regu=0, epsilon=0.1, iterNum=100, regu_nor
     B = normalize(B, axis=1, norm='l2')
     F = gradient_descent_full(B, np.ones(B.shape).astype(float), V=V, regu=regu, epsilon=epsilon, iterNum=iterNum)
     return F
+
+def filter_genes_by_proj(A: np.ndarray, V: np.ndarray, n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+    """
+    Filters genes from a matrix A based on a projection matrix V.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    V : np.ndarray
+        A matrix of shape (k,n) where k is the number of components to project onto.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    if n_genes==None and percent_genes==None:
+        n_genes=int(A.shape[0]/2)
+    elif  n_genes==None:
+        if percent_genes<1 and percent_genes>0:
+            n_genes= int(A.shape[0] * percent_genes)
+        else:
+            print("percent_genes should be between 0 and 1")
+            return None
+    score_array = np.zeros(A.shape[1])
+    for i in range(A.shape[1]):
+        gene = A[:,i]
+        score_array[i]= np.trace((V.T).dot(gene).dot(gene.T).dot(V))
+    x = np.argsort(score_array)[::-1][:n_genes]
+    D = np.zeros((A.shape[1],A.shape[1]))
+    D[x,x]=1
+    return D
+
+def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+    """
+    Filters non cyclic genes from a matrix A.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    V : np.ndarray
+        A matrix of shape (k,n) where k is the number of components to project onto.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    A = np.array(A).astype('float64')
+    A = cell_normalization(A)
+    V = ge_to_spectral_matrix(A)
+    A = gene_normalization(A)
+    D =  filter_genes_by_proj(A=A, V=V.T, n_genes=n_genes, percent_genes=percent_genes)
+    return D
