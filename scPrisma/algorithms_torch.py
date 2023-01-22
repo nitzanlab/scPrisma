@@ -888,38 +888,6 @@ def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_si
     return E
 
 
-def stochastic_gradient_ascent_full_torch(A, F, V, regu, epsilon=0.1, iterNum=400, regu_norm='L1', verbosity=25):
-    """
-    This function enhances the cyclic signal by applying stochastic gradient ascent method.
-    Parameters:
-    A (torch.tensor): The gene expression matrix.
-    F (torch.tensor): The enhancement matrix.
-    V (torch.tensor): The theoretic spectrum of covariance matrix.
-    regu (float): The regularization coefficient.
-    epsilon (float, optional): The step size. Default is 0.1.
-    iterNum (int, optional): The number of iterations for the gradient ascent. Default is 400.
-    regu_norm (str, optional): The type of regularization to apply. Default is 'L1'.
-    verbosity (int, optional): The verbosity level. Default is 25.
-
-    Returns:
-    torch.tensor: The enhancement matrix.
-    """
-    j = 0
-    epsilon_t = epsilon
-    VVT = V.mm(V.T)
-    while (j < iterNum):
-        if j % verbosity == 1:
-            value, grad = function_and_gradient_full_acc_torch(A=A, B=F, V=V, VVT=VVT, regu=regu, regu_norm=regu_norm)
-            print("Iteration number: ")
-            print((j))
-            print("function value: ")
-            print((value))
-        epsilon_t *= 0.995
-        grad = G_full_torch(A=A, B=F, VVT=VVT, regu=regu)
-        F = F + epsilon_t * (grad + torch.normal(0, 0.01, grad.shape))
-        j += 1
-    return F
-
 
 def sort_data_crit(adata, crit, crit_list):
     '''
