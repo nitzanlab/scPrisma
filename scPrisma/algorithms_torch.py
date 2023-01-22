@@ -631,7 +631,7 @@ def stochastic_gradient_ascent_full_torch(A, F, VVT, regu, epsilon=0.1, iterNum=
             print("Iteration number: " + str(j))
         epsilon_t *= 0.995
         grad = G_full_torch(A=A, B=F, VVT=VVT, regu=regu)
-        F = F + epsilon_t * (grad + torch.normal(0, 0.01, grad.shape))
+        F = F + epsilon_t * (grad + torch.normal(0, 0.01, grad.shape, device=device))
         F = torch.clip(F, 0, 1)
         j += 1
     del grad
@@ -687,7 +687,7 @@ def enhance_general_topology_torch(A, V, regu=0.5, iterNum=300):
     print(A.get_device())
     print(device)
     print("starting filtering")
-    F_gpu = stochastic_gradient_ascent_full_torch(A, F=F_gpu, VVT=VVT, regu=regu, iterNum=iterNum)
+    F_gpu = stochastic_gradient_ascent_full_torch(A, F=F_gpu, VVT=VVT, regu=regu, iterNum=iterNum, device=device)
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
