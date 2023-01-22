@@ -22,3 +22,6 @@ GPU version::
     git clone https://github.com/nitzanlab/scPrisma.git
     cd scPrisma
     pip install ."[gpu]"
+
+Reconstruction
+^^^^^^^^^^^^^^
