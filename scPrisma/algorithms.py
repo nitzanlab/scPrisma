@@ -1781,7 +1781,7 @@ def filter_genes_by_proj(A: np.ndarray, V: np.ndarray, n_genes: int = None, perc
     score_array = np.zeros(A.shape[1])
     for i in range(A.shape[1]):
         gene = A[:,i]
-        score_array[i]= np.trace((V.T).dot(gene).dot(gene.T).dot(V))
+        score_array[i]= np.trace((V.T).dot(np.outer(gene,gene)).dot(V))
     x = np.argsort(score_array)[::-1][:n_genes]
     D = np.zeros((A.shape[1],A.shape[1]))
     D[x,x]=1
