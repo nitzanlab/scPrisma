@@ -449,19 +449,14 @@ def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity=25, error=10e-7
     A = cell_normalization(A)
     V = ge_to_spectral_matrix(A, optimize_alpha=False)
     V = V.T
-    F = torch.ones(A.shape)
-    V = torch.from_numpy(V)
-    A = torch.from_numpy(A)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    A = A.to(device)
-    V = V.to(device)
+    A = torch.tensor(A, dtype=torch.float32, device=device)
+    V = torch.tensor(V, dtype=torch.float32, device=device)
+    F_gpu = torch.ones(A.shape, dtype=torch.float32, device=device)
     VVT = (V).mm(V.T)
     del V
     torch.cuda.empty_cache()
-    F_gpu = F.to(device)
-    print(A.get_device())
-    print(device)
-    print("starting filtering")
+    print("starting enhancement on " + str(device))
     F_gpu = stochastic_gradient_ascent_full_torch(A, F_gpu, VVT=VVT, regu=regu, epsilon=0.1, iterNum=iterNum, device=device)
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
