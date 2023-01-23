@@ -7,7 +7,6 @@ scPrisma
 
     scPrisma
     Installation
-    Cyclic signals
 
 .. image:: https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true
    :width: 600px
