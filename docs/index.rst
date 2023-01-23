@@ -32,7 +32,7 @@ import scanpy as sc
 Imports and pre-processing
 ~~~~~~~~~~
 We highly recommend using `scanpy <https://scanpy.readthedocs.io/>`_ for preprocessing, visualization, and downstream analysis of scRNA-seq data.
-First, import 'scPrisma', 'scanpy' and 'numpy'. If you use the GPU version, import also 'torch'.
+First, import 'scPrisma', 'scanpy' and 'numpy'. If you use the GPU version, import also 'torch'::
 
     import scanpy as sc
     import numpy as np
