@@ -27,9 +27,19 @@ GPU (pytorch) version::
 
 scPrisma is based on matrix optimization using gradient descent, therefore using GPU boosts the performance significantly. It is highly recommended using GPU for large datasets. e.g for the reconstruction task it is recommended using GPU for datasets which are larger than 2,000-3,000 cells, and for the gene inference/filtering/enhancement for datasets which are larger than 15,000-20,000 cells.
 
-Pre-processing
+import scanpy as sc
+
+Imports and pre-processing
 ~~~~~~~~~~
 We highly recommend using `scanpy <https://scanpy.readthedocs.io/>`_ for preprocessing, visualization, and downstream analysis of scRNA-seq data.
+First, import 'scPrisma', 'scanpy' and 'numpy'. If you use the GPU version, import also 'torch'.
+
+    import scanpy as sc
+    import numpy as np
+    import scPrisma
+    #import torch
+
+
 
 Cyclic signals Workflows
 -------
@@ -41,6 +51,17 @@ The core of scPrisma utilizes spectral template matching between the spectrum (t
 
 Reconstruction
 ~~~~~~~~~~
+The first step in each one of the workflows is reconstructing the signal (order the cells along the topology). 
+This can be done in few ways:
+
+1. Using the reconstruction algorithm.
+
+2. Using full prior knowledge 
+
+2. The filtering workflow consist of two stages: reconstruction of the cyclic signal, filter out expression profiles which are not related to the inferred signal.
+
+
+this can be done using the reconstriction algorithm:
 
 
 General topology
