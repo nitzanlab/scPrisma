@@ -1,11 +1,9 @@
-import copy
 
 import torch
 import numpy as np
 from numpy import random
 
 from scPrisma.pre_processing import *
-from numba import jit
 
 
 def reconstruct_e(E_prob):
@@ -177,7 +175,7 @@ def sga_matrix_momentum_torch(A, E, V, step, iterNum=400, batch_size=20, lr=0.1,
         Device to perform the computation on, by default 'cpu'
     Returns
     -------
-    np.ndarray
+    torch.tensor
         permutation matrix
     """
     j = 0
@@ -214,13 +212,11 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1, verbos
     :param iterNum: iteration number
     :param batch_size: batch size
     :param lr: learning rate
-    :param gamma: momentum parameter
     :return: permutation matrix
     '''
     j = 0
     value = 0
     VVT = (V).mm(V.T)  # for runtime optimization
-    del V
     torch.cuda.empty_cache()
     epsilon_t = lr
     prev_E = torch.empty(E.shape, dtype=torch.float32)
@@ -643,7 +639,7 @@ def G_full_torch(A, B, VVT, regu):
     '''
     :param A: Gene expression matrix
     :param B: filtering matrix
-    :param V: spectral matrix
+    :param VVT: original covariance matrix
     :param regu: correlation between neighbors
     :return:projection over theoretic spectrum and gradient according to 'B'
     '''
@@ -747,8 +743,6 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
         Step size (learning rate).
     iterNum : int, optional
         Number of iterations to run gradient descent.
-    regu_norm : str, optional
-        Regularization norm to use, either 'L1' or 'L2'.
     device : str, optional
         Device to use for computations, either 'cpu' or 'cuda'.
     Returns
@@ -822,16 +816,11 @@ def reorder_indicator_torch(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     V = ge_to_spectral_matrix(A, optimize_alpha=False)
-    A = torch.tensor(A.astype(float), device=device)
-    IN = torch.tensor(IN.astype(float), device=device)
-    V = torch.tensor(V.astype(float), device=device)
-    E = torch.ones((n, n))
-    E = E.type(torch.float32)
-    step = torch.zeros(E.shape)
-    step = step.type(torch.float32)
-    A = A.to(device)
-    E = E.to(device)
-    step = step.to(device)
+    A = torch.tensor(A.astype(torch.float32), device=device)
+    IN = torch.tensor(IN.astype(torch.float32), device=device)
+    V = torch.tensor(V.astype(torch.float32), device=device)
+    E = torch.ones((n, n), dtype=torch.float32, device=device)
+    step = torch.zeros((n, n), dtype=torch.float32, device=device)
     E = E * IN
     E = sga_matrix_momentum_indicator_torch(A, E, V=V.T, IN=IN, iterNum=iterNum, batch_size=batch_size, gamma=gamma,
                                             lr=lr, step=step, device=device)
@@ -1102,8 +1091,6 @@ def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, p
     ----------
     A : np.ndarray
         A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
-    V : np.ndarray
-        A matrix of shape (k,n) where k is the number of components to project onto.
     n_genes : int, optional
         The number of genes to select, by default None
     percent_genes : float, optional
