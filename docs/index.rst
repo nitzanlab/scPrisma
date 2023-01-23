@@ -74,7 +74,16 @@ This can be done in few ways:
 
 3. Using partial prior knowledge, restricting the optimization parameter (E) to a specific subset of doubly stochastic matrices by creating an indicator matrix. After each gradient ascent step, the optimization parameter is multiplied by this indicator matrix. An example is available in the following  
 `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_.
-A. partial labels.
+A. For example, given cell cycle phase labels ('G1', 'S', 'G2M') we will divide the optimization parameter to three consecutive bins, the first will be for cells of 'G1' phase, the second for cells of 'S' phase and the third of 'G2M' phases::
+
+      indicator_matrix = np.zeros((adata_reconstruction.n_obs,adata_reconstruction.n_obs))
+      crit_list = ['G1', 'G2M', 'S']
+      for i , j in enumerate(adata.obs["phase"]):
+            indicator_matrix[i,:]=np.array(adata.obs["phase"]==j,dtype=int)
+      E, E_rec = scPrisma.algorithms.reorder_indicator(adata.X,indicator_matrix, iterNum=100)
+      order = scPrisma.algorithms.e_to_range(E_rec)
+      adata = adata[order,:]
+
 
 
 
