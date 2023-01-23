@@ -61,13 +61,16 @@ Reconstruction
 The first step in each one of the workflows is reconstructing the signal (order the cells along the topology). 
 This can be done in few ways:
 
-1. Using the reconstruction algorithm, if there is no any prior knowledge and the signal is strong enough (as described in the manuscript), If you use the GPU version, you should use ``scPrisma.algorithms_torch.reconstruction_cyclic_torch`` and ``scPrisma.algorithms_torch.e_to_range_torch`` instead of the mentioned functions::
+1. Using the reconstruction algorithm, if there is no any prior knowledge and the signal is strong enough (as described in the manuscript). Usage example can be found in this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/tutorial_de_novo_reconstruction.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.reconstruction_cyclic_torch`` and ``scPrisma.algorithms_torch.e_to_range_torch`` instead of the mentioned functions::
 
       E , E_rec = scPrisma.algorithms.reconstruction_cyclic(adata.X)
       order = scPrisma.algorithms.e_to_range(E_rec)
       adata = adata[order,:]
 
-2. Using full prior knowledge 
+2. Using full prior knowledge. Use the function ``sort_data_crit`` which sorts the according to an observation of the field that is inserted as 'crit', in the order of 'crit_list' (using scanpy AnnData). In the example, the observation is 'ZT' which contains the values: '0','6','12','18'. After the sorting, the cells with the values '0' would be the first in the expression matrix, than '6','12' and '18'::
+
+      scPrisma.algorithms_torch.sort_data_crit(adata, crit='ZT',crit_list=['0','6','12','18'])
+
 
 3. The filtering workflow consist of two stages: reconstruction of the cyclic signal, filter out expression profiles which are not related to the inferred signal.
 
