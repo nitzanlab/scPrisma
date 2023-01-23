@@ -833,16 +833,15 @@ def reorder_indicator_torch(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
     E = E.to(device)
     step = step.to(device)
     E = E * IN
-    E = BBS_torch(E)
     E = sga_matrix_momentum_indicator_torch(A, E, V=V.T, IN=IN, iterNum=iterNum, batch_size=batch_size, gamma=gamma,
-                                            lr=lr, step=step)
+                                            lr=lr, step=step, device=device)
     E_cpu = (E.cpu()).numpy()
     E_recon = reconstruct_e(E_cpu)
     del A, E, V, IN, step
     return E_cpu, E_recon
 
 
-def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_size=20, lr=0.1, gamma=0.9):
+def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_size=20, lr=0.1, gamma=0.9, device='cpu'):
     '''
     Reconstruction algorithm with optional use of prior knowledge
     Parameters
@@ -871,10 +870,15 @@ def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_si
     -------
     '''
     j = 0
+    prev_E = torch.empty(E.shape, dtype=torch.float32)
+    prev_E = prev_E.to(device)
+    I = torch.eye(E.shape[0], dtype=torch.float32)
+    I = I.to(device)
+    ones_m = torch.ones((E.shape[0], E.shape[0]), dtype=torch.float32)
+    ones_m = ones_m.to(device)
+    E = BBS_torch(E=E, prev_E=prev_E, I=I, ones_m=ones_m) * IN
     value = 0
     epsilon_t = lr
-    E = E * IN
-    E = BBS_torch(E) * IN
     while (j < iterNum):
         if j % 25 == 0:
             print("Iteration number: " + str(j) + " function value= " + str(value))
@@ -883,7 +887,7 @@ def sga_matrix_momentum_indicator_torch(A, E, V, IN, step, iterNum=400, batch_si
         grad = grad
         step = epsilon_t * grad + gamma * step
         E = E + step
-        E = BBS_torch(E) * IN
+        E = BBS_torch(E=E, prev_E=prev_E, I=I, ones_m=ones_m) * IN
         j += 1
     return E
 
