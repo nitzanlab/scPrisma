@@ -816,9 +816,9 @@ def reorder_indicator_torch(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     V = ge_to_spectral_matrix(A, optimize_alpha=False)
-    A = torch.tensor(A.astype(torch.float32), device=device)
-    IN = torch.tensor(IN.astype(torch.float32), device=device)
-    V = torch.tensor(V.astype(torch.float32), device=device)
+    A = torch.tensor(A, dtype=torch.float32, device=device)
+    IN = torch.tensor(IN, dtype=torch.float32, device=device)
+    V = torch.tensor(V, dtype=torch.float32, device=device)
     E = torch.ones((n, n), dtype=torch.float32, device=device)
     step = torch.zeros((n, n), dtype=torch.float32, device=device)
     E = E * IN
