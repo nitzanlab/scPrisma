@@ -38,7 +38,7 @@ The core of scPrisma utilizes spectral template matching between the spectrum (t
 
 Pre-processing
 ~~~~~~~~~~
-We highly recommend using `scanpy <https://scanpy.readthedocs.io/>` for preprocessing, visualization, and downstream analysis of scRNA-seq data.
+We highly recommend using `scanpy <https://scanpy.readthedocs.io/>`_ for preprocessing, visualization, and downstream analysis of scRNA-seq data.
 
 Reconstruction
 ~~~~~~~~~~
