@@ -1079,7 +1079,7 @@ def filter_genes_by_proj_torch(A: torch.tensor, V: torch.tensor, n_genes: int = 
         else:
             print("percent_genes should be between 0 and 1")
             return None
-    score_array = torch.zeros(A.shape[1])
+    score_array = np.zeros(A.shape[1])
     for i in range(A.shape[1]):
         gene = A[:,i]
         score_array[i]= torch.trace((V.T).mm(torch.outer(gene,gene)).mm(V)).cpu().numpy()
