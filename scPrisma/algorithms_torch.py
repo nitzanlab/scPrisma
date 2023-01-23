@@ -1222,7 +1222,7 @@ def enhance_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, r
     B = torch.tensor(B.astype(float), device=device)
     F_gpu = torch.tensor(np.ones(B.shape).astype(float), device=device)
     F_gpu = stochastic_gradient_ascent_full_torch(B, F_gpu, VVT=VVT, regu=regu, epsilon=epsilon, iterNum=iterNum)
-    del A, V
+    del A, VVT
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
