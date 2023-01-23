@@ -1,3 +1,6 @@
+Installation
+==============================================
+
 Installation and pre-processing
 -------
 
