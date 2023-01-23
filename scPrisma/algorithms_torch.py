@@ -1187,3 +1187,35 @@ def filter_general_genes_by_proj_torch(A: np.ndarray, cov: np.ndarray, n_genes: 
     V = V.to(device)
     D =  filter_genes_by_proj_torch(A=A, V=V, n_genes=n_genes, percent_genes=percent_genes, device=device)
     return D
+
+def enhance_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, regu_norm='L1', device='cpu'):
+    """
+    Enhances a signal based on a eigendecomposition of the theoretical covariance matrix describes the signal by running stochastic gradient ascent with L1 regularization.
+
+    Parameters
+    ----------
+    A : ndarray
+        AnnData object to filter.
+    cov : ndarray
+        The covariance matrix to calculate eigenvalues and eigenvectors for.
+    regu : float
+        Regularization coefficient.
+    epsilon : float, optional
+        Step size (learning rate).
+    iterNum : int, optional
+        Number of iterations to run gradient descent.
+    regu_norm : str, optional
+        Regularization norm to use, either 'L1' or 'L2'.
+    device : str, optional
+        Device to use for computations, either 'cpu' or 'cuda'.
+
+    Returns
+    -------
+    F: np.array
+         Filtering matrix
+    """
+    B = A.copy()
+    V = np.array(get_theoretic_eigen(cov)).astype(float)
+    B = normalize(B, axis=1, norm='l2')
+    F = stochastic_gradient_ascent_full_torch(B, np.ones(B.shape).astype(float), V=V, regu=regu, epsilon=epsilon, iterNum=iterNum)
+    return F
