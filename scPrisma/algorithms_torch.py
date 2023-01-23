@@ -406,7 +406,7 @@ def gradient_ascent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, ite
         epsilon_t *= 0.995
         # T = D.diagonal()#numba_diagonal(D)#.diagonal()
         # grad = ATUUTA * T - regu * torch.sign(D)
-        T = T + ascent * epsilon_t * (ATUUTA * T).diag() - regu * torch.sign(T)
+        T = T + ascent * epsilon_t * (ATUUTA * T).diag() - ascent*regu * torch.sign(T)
         T = torch.clip(T, 0, 1)
         j += 1
     print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
@@ -704,7 +704,7 @@ def gene_inference_general_topology_torch(A, V, regu=0.5, iterNum=100, lr=0.1):
     A = A.to(device)
     V = V.to(device)
     T = T.to(device)
-    D = gradient_ascent_filter_matrix_torch(A, T=T, U=V, regu=regu, lr=lr, iterNum=iterNum)
+    D = gradient_ascent_filter_matrix_torch(A, T=T, U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     del A
     del V
     del T
@@ -1048,3 +1048,142 @@ def enhancement_linear_torch(A: np.ndarray, regu: float = 0.1, iterNum: int = 30
     del F_gpu
     return F
 
+def filter_genes_by_proj_torch(A: torch.tensor, V: torch.tensor, n_genes: int = None, percent_genes: float = None, device='cpu') -> np.ndarray:
+    """
+    Filters genes from a matrix A based on a projection matrix V.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : torch.tensor
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    V : torch.tensor
+        A matrix of shape (k,n) where k is the number of components to project onto.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    if n_genes==None and percent_genes==None:
+        n_genes=int(A.shape[0]/2)
+    elif  n_genes==None:
+        if percent_genes<1 and percent_genes>0:
+            n_genes= int(A.shape[0] * percent_genes)
+        else:
+            print("percent_genes should be between 0 and 1")
+            return None
+    score_array = torch.zeros(A.shape[1])
+    for i in range(A.shape[1]):
+        gene = A[:,i]
+        score_array[i]= torch.trace((V.T).mm(torch.outer(gene,gene)).mm(V)).cpu().numpy()
+    x = np.argsort(score_array)[::-1][:n_genes]
+    D = np.zeros((A.shape[1],A.shape[1]))
+    D[x,x]=1
+    return D
+
+def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+    """
+    Filters non cyclic genes from a matrix A.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    V : np.ndarray
+        A matrix of shape (k,n) where k is the number of components to project onto.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    A = np.array(A).astype('float64')
+    A = cell_normalization(A)
+    V = ge_to_spectral_matrix(A)
+    A = gene_normalization(A)
+    V=V.T
+    V = torch.from_numpy(V).to(float)
+    A = torch.from_numpy(A).to(float)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    A = A.to(device)
+    V = V.to(device)
+    D =  filter_genes_by_proj_torch(A=A, V=V, n_genes=n_genes, percent_genes=percent_genes)
+    return D
+
+def sort_data_crit(adata,crit,crit_list):
+    '''
+    Sort the cells of an AnnData object according to a field (obs)
+    :param adata: AnnData to be sorted
+    :param crit: 'obs' field
+    :param crit_list: list of 'obs' possible values, sorted according to the desired ordering (e.g ['0','6','12','18])
+    :return:
+    '''
+    adata = shuffle_adata(adata) #for avoiding batch effects
+    layers = [[] for i in range(len(crit_list))]
+    obs = adata.obs
+    for i, row in obs.iterrows():
+        layer = (row[crit])
+        for j , item in enumerate(crit_list):
+            if item==layer:
+                layers[j].append(i)
+    order = sum(layers, [])
+    sorted_data = adata[order,:]
+    return sorted_data
+
+def shuffle_adata(adata):
+    '''
+    Shuffle the rows(obs/cells) of adata
+    :param adata: adata
+    :return: shuffled adata
+    '''
+    perm = np.random.permutation(range(adata.X.shape[0]))
+    return adata[perm,:]
+
+def filter_general_genes_by_proj_torch(A: np.ndarray, cov: np.ndarray, n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+    """
+    Filters genes from a matrix A based on their projection over the theoretic spectrum of covaraince matrix cov.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    cov : np.ndarray
+        A matrix of shape (n,n), the theoretical covaraince matrix.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    A = np.array(A).astype('float64')
+    A = cell_normalization(A)
+    V = get_theoretic_eigen(cov)
+    A = gene_normalization(A)
+    V = torch.from_numpy(V).to(float)
+    A = torch.from_numpy(A).to(float)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    A = A.to(device)
+    V = V.to(device)
+    D =  filter_genes_by_proj_torch(A=A, V=V, n_genes=n_genes, percent_genes=percent_genes, device=device)
+    return D

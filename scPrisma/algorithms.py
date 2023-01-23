@@ -1667,7 +1667,7 @@ def enhance_general_topology(A, V, regu=0.5, iterNum=300):
 
 def gene_inference_general_topology(A, V, regu=0.5, iterNum=100, lr=0.1):
     """
-    Infer the genes which are smooth over given topology.
+    Infer the genes which are non-smooth over given topology.
 
     Parameters
     ----------
@@ -1690,7 +1690,7 @@ def gene_inference_general_topology(A, V, regu=0.5, iterNum=100, lr=0.1):
     A = np.array(A).astype('float64')
     A = gene_normalization(A)
     p = A.shape[1]
-    D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2, U=V, regu=regu, lr=lr, iterNum=iterNum)
+    D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2,  U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     return D
 
 
@@ -1845,3 +1845,33 @@ def shuffle_adata(adata):
     '''
     perm = np.random.permutation(range(adata.X.shape[0]))
     return adata[perm,:]
+
+def filter_general_genes_by_proj(A: np.ndarray, cov: np.ndarray, n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+    """
+    Filters genes from a matrix A based on their projection over the theoretic spectrum of covaraince matrix cov.
+    If n_genes is not provided, the function will select the top half of the genes by default.
+    If percent_genes is not provided, the function will select the top n_genes genes by default.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
+    cov : np.ndarray
+        A matrix of shape (n,n), the theoretical covaraince matrix.
+    n_genes : int, optional
+        The number of genes to select, by default None
+    percent_genes : float, optional
+        The percent of genes to select, by default None
+
+    Returns
+    -------
+    np.ndarray
+        A matrix of shape (p,p) where the top n_genes or percent_genes genes are set to 1 and the rest are set to 0.
+
+    """
+    A = np.array(A).astype('float64')
+    A = cell_normalization(A)
+    V = get_theoretic_eigen(cov)
+    A = gene_normalization(A)
+    D =  filter_genes_by_proj(A=A, V=V, n_genes=n_genes, percent_genes=percent_genes)
+    return D
