@@ -1,5 +1,13 @@
 Installation
 ==============================================
+.. toctree::
+    :caption: General
+    :maxdepth: 4
+    :hidden:
+
+    scPrisma
+    Installation
+    Cyclic signals
 
 Installation and pre-processing
 -------
