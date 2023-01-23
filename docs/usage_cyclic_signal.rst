@@ -2,13 +2,12 @@ Cyclic signals
 ==============================================
 .. toctree::
     :caption: General
-    :maxdepth: 3
+    :maxdepth: 4
     :hidden:
-    
+
     scPrisma
     Installation
     Cyclic signals
-    General templates
 
 
 .. image:: https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true
