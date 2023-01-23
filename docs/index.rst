@@ -1,5 +1,13 @@
 scPrisma
 ==============================================
+.. toctree::
+    :caption: General
+    :maxdepth: 3
+    :hidden:
+    
+    scPrisma
+    installation
+
 
 .. image:: https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true
    :width: 600px
