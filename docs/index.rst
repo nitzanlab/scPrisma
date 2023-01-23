@@ -4,9 +4,11 @@ scPrisma
     :caption: General
     :maxdepth: 3
     :hidden:
-    
+
     scPrisma
-    installation
+    Installation
+    Cyclic signals
+    General templates
 
 
 .. image:: https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true
