@@ -72,7 +72,12 @@ This can be done in few ways:
       scPrisma.algorithms_torch.sort_data_crit(adata, crit='ZT',crit_list=['0','6','12','18'])
 
 
-3. The filtering workflow consist of two stages: reconstruction of the cyclic signal, filter out expression profiles which are not related to the inferred signal.
+3. Using partial prior knowledge:
+A. partial labels.
+
+
+
+he filtering workflow consist of two stages: reconstruction of the cyclic signal, filter out expression profiles which are not related to the inferred signal.
 
 
 this can be done using the reconstriction algorithm:
