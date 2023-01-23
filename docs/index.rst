@@ -2,7 +2,7 @@ scPrisma
 ==============================================
 .. toctree::
     :caption: General
-    :maxdepth: 3
+    :maxdepth: 4
     :hidden:
 
     scPrisma
