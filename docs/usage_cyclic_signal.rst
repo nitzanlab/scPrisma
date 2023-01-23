@@ -30,10 +30,10 @@ Reconstruction
 The first step in each one of the workflows is reconstructing the signal (order the cells along the topology). 
 This can be done in few ways:
 
-1. Using the reconstruction algorithm::
+1. Using the reconstruction algorithm, if there is no any prior knowledge and the signal is strong enough (as described in the manuscript)::
 
-      E , E_rec = reconstruction_cyclic(adata.X)
-      order = E_to_range(E_rec)
+      E , E_rec = scPrisma.algorithms.reconstruction_cyclic(adata.X)
+      order = scPrisma.algorithms.e_to_range(E_rec)
       adata = adata[order,:]
 
 
