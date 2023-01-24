@@ -339,14 +339,14 @@ def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U = ge_to_spectral_matrix(A)
     U = U.T
     A = gene_normalization(A)
-    T = np.ones((p)) / 2
+    D = np.ones((p,p)) / 2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
-    T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
+    D = torch.tensor(D.astype(float), device=device)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=U, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
-    del T
+    del D_gpu
     del U
     del A
     return D
@@ -366,46 +366,19 @@ def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     U = ge_to_spectral_matrix(A)
     U = U.T
     A = gene_normalization(A)
-    T = np.ones((p)) / 2
+    D = np.ones((p,p)) / 2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
-    T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D = torch.tensor(D.astype(float), device=device)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
-    del T
+    del D_gpu
     del U
     del A
     return D
 
 
-def gradient_ascent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
-    '''
-    :param A: gene expression matrix
-    :param D: diagonal filter matrix (initial value)
-    :param U: Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix
-    :param ascent: 1 - gradient ascent , -1 - gradient decent
-    :param lr: learning rate
-    :param regu: regularization parameter
-    :param iterNum:  iteration number
-    :return: diagonal filter matrix
-    '''
-    j = 0
-    val = 0
-    epsilon_t = lr
-    ATUUTA = 2 * ((A.T).mm(U)).mm(U.T).mm(A)
-    while (j < iterNum):
-        if j % 25 == 1:
-            print("Iteration number: ")
-            print(j)
-        epsilon_t *= 0.995
-        # T = D.diagonal()#numba_diagonal(D)#.diagonal()
-        # grad = ATUUTA * T - regu * torch.sign(D)
-        T = T + ascent * epsilon_t * (ATUUTA * T).diag() - ascent*regu * torch.sign(T)
-        T = torch.clip(T, 0, 1)
-        j += 1
-    print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
-    return T.diag()
 
 
 def gradient_descent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, iterNum=400):
@@ -686,19 +659,20 @@ def enhance_general_topology_torch(A, V, regu=0.5, iterNum=300):
 def gene_inference_general_topology_torch(A, V, regu=0.5, iterNum=100, lr=0.1):
     A = gene_normalization(A)
     p = A.shape[1]
-    T = np.ones((p)) / 2
+    D = np.ones((p,p)) / 2
     A = torch.from_numpy(A)
     V = torch.from_numpy(V)
-    T = torch.from_numpy(T)
+    D = torch.from_numpy(D)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = A.to(device)
     V = V.to(device)
-    T = T.to(device)
-    D = gradient_ascent_filter_matrix_torch(A, T=T, U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D = D.to(device)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D = D_gpu.cpu().detach().numpy()
     del A
     del V
-    del T
-    return D.cpu().detach().numpy()
+    del D_gpu
+    return D
 
 
 def filter_general_topology_torch(A, V, regu=0.5, iterNum=300):
@@ -985,7 +959,7 @@ def filter_linear_genes_torch(A: np.ndarray, regu: float=0.1, iterNum: int=500, 
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     D = torch.tensor(D.astype(float), device=device)
-    D_gpu = gradient_ascent_filter_matrix_torch2(A, D=D, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
     del D_gpu
     del U
@@ -1212,17 +1186,17 @@ def enhance_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, r
     return F
 
 
-def gradient_ascent_filter_matrix_torch2(A, D, U, ascent, lr,regu, iterNum, verbose= True):
+def gradient_ascent_filter_matrix_torch(A, D, U, ascent=1, lr=0.1,regu=0.1, iterNum=400, verbose= True):
     """
     Finds the diagonal filter matrix by gradient ascent/descent optimization.
 
     Parameters
     ----------
-    A : np.ndarray
+    A : torch.tensor
         Gene expression matrix.
-    D : np.ndarray
+    D : torch.tensor
         Diagonal filter matrix (initial value).
-    U : np.ndarray
+    U : torch.tensor
         Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix.
     ascent : int, optional
         1 - gradient ascent , -1 - gradient decent, by default 1.
@@ -1237,7 +1211,7 @@ def gradient_ascent_filter_matrix_torch2(A, D, U, ascent, lr,regu, iterNum, verb
 
     Returns
     -------
-    np.ndarray
+    torch.tensor
         Diagonal filter matrix.
     """
     j = 0
@@ -1249,8 +1223,6 @@ def gradient_ascent_filter_matrix_torch2(A, D, U, ascent, lr,regu, iterNum, verb
             if verbose:
                 print("Iteration number: ")
                 print(j)
-                print("function value= ")
-                print(val)
         epsilon_t *= 0.995
         T = D.diagonal()  # .diagonal()
         grad = ATUUTA * T - regu * torch.sign(D)
