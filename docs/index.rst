@@ -58,7 +58,8 @@ The core of scPrisma utilizes spectral template matching between the spectrum (t
 
 Reconstruction
 ~~~~~~~~~~
-The first step in each one of the workflows is reconstructing the signal (order the cells along the topology). 
+The first step in each one of the workflows is reconstructing the signal (order the cells along the topology). This stage is the most challenging stage, both in terms of computational complexity and accuracy.
+
 This can be done in few ways:
 
 1. Using the reconstruction algorithm, if there is no any prior knowledge and the signal is strong enough (as described in the manuscript). Usage example can be found in this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/tutorial_de_novo_reconstruction.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.reconstruction_cyclic_torch`` and ``scPrisma.algorithms_torch.e_to_range_torch`` instead of the mentioned functions::
@@ -72,7 +73,7 @@ This can be done in few ways:
       scPrisma.algorithms_torch.sort_data_crit(adata, crit='ZT',crit_list=['0','6','12','18'])
 
 
-3. Using partial prior knowledge, restricting the optimization parameter (E) to a specific subset of doubly stochastic matrices by creating an indicator matrix. After each gradient ascent step, the optimization parameter is multiplied by this indicator matrix. An example is available in the following  
+3. Using partial prior knowledge- discrete labels restricting the optimization parameter (E) to a specific subset of doubly stochastic matrices by creating an indicator matrix. After each gradient ascent step, the optimization parameter is multiplied by this indicator matrix. An example is available in the following  
 `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_.
 A. For example, given cell cycle phase labels ('G1', 'S', 'G2M') we will divide the optimization parameter to three consecutive bins, the first will be for cells of 'G1' phase, the second for cells of 'S' phase and the third of 'G2M' phases::
 
@@ -84,6 +85,8 @@ A. For example, given cell cycle phase labels ('G1', 'S', 'G2M') we will divide 
       order = scPrisma.algorithms.e_to_range(E_rec)
       adata = adata[order,:]
 
+
+4. Using partial prior knowledge- gene selection, the reconstruction algorithm can be applied to only a subset of genes that are known to be related to the desired signal. It is important to ensure that the selected subset of genes contains information about all the different states of the desired signal. For example, using only marker genes for the 'S' and 'G2M' phases of the cell cycle for reconstruction, would not produce accurate results. In such cases, it may be more beneficial to increase the proportion of expression of those marker genes within the total expression, for example, by multiplying each one by a constant greater than 1.
 
 
 
