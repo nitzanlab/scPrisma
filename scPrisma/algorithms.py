@@ -332,9 +332,9 @@ def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.
         Number of stochastic gradient ascent iterations
     batch_size: int
         batch size, number of genes sampled per batch
-    lr: int
+    lr: float
         Learning rate
-    gamma: int
+    gamma: float
         Momentum parameter
 
     Returns
@@ -374,9 +374,9 @@ def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1
         Number of stochastic gradient ascent iterations
     batch_size: int
         batch size, number of genes sampled per batch
-    lr: int
+    lr: float
         Learning rate
-    gamma: int
+    gamma: float
         Momentum parameter
 
     Returns
@@ -409,9 +409,9 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, ve
         Number of stochastic gradient ascent iterations
     batch_size: int
         batch size, number of genes sampled per batch
-    lr: int
+    lr: float
         Learning rate
-    gamma: int
+    gamma: float
         Momentum parameter
     verbose: bool
         verbosity
@@ -450,7 +450,7 @@ def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500) -> np.array:
         Gene expression matrix
     regu: float
         Regularization coefficient, large regularization would lead to more non-cyclic genes which will be filtered out
-    lr: int
+    lr: float
         Learning rate
     iterNum: int
         Number of stochastic gradient ascent iterations
@@ -480,7 +480,7 @@ def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1, verbose=True):
         Gene expression matrix
     regu: float
         Regularization coefficient, large regularization would lead to more cyclic genes which will be filtered out
-    lr: int
+    lr: float
         Learning rate
     iterNum: int
         Number of stochastic gradient ascent iterations
@@ -1797,8 +1797,6 @@ def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent
     ----------
     A : np.ndarray
         A matrix of shape (n,p) where m is the number of samples and n is the number of genes.
-    V : np.ndarray
-        A matrix of shape (k,n) where k is the number of components to project onto.
     n_genes : int, optional
         The number of genes to select, by default None
     percent_genes : float, optional

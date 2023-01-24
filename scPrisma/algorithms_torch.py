@@ -753,9 +753,8 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
     F_gpu = torch.tensor(np.ones(B.shape).astype(float), device=device)
     F_gpu = gradient_descent_full_torch(B, F_gpu.type(torch.float), VVT=VVT, regu=regu, epsilon=epsilon,
                                         iterNum=iterNum)
-    del A, V
     F = F_gpu.cpu().detach().numpy()
-    del F_gpu
+    del F_gpu, VVT , B
     return F
 
 
