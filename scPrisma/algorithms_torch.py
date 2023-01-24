@@ -258,6 +258,7 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     V = ge_to_spectral_matrix(A, optimize_alpha=False)
+    V = V.T
     A = torch.tensor(A.astype(float), device=device)
     V = torch.tensor(V.astype(float), device=device)
     E = torch.ones((n, n))
