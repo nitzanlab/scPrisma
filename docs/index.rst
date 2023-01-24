@@ -104,8 +104,12 @@ After obtaining the reconstructed signal, either through solving the reconstruct
 
 This can be done in two ways:
 
-1. Using the genes inference algorithm. Due to convexity considerations, it is easier to infer genes that are not related to the desired signal, and then flip the results.
+1. Using the genes inference algorithm. Due to convexity considerations, it is easier to infer genes that are not related to the desired signal, and then flip the results. The regularization parameter is the only parameter that should be tuned. By keeping a large value, the  algorithm would keep more cyclic genes, which would then be filtered later by flipping. The optimal way to tune this parameter is when we have known 'flat' genes (which we want to filter out) and known 'cyclic' genes (which we want to keep). An example for the tuning of this parameter is available in this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/tutorial_de_novo_reconstruction.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_cyclic_genes_torch`` instead of the mentioned functions::
 
+      D = scPrisma.algorithms.filter_cyclic_genes(adata.X,regu=0, iterNum=100)
+      adata.X = adata.X @ D
+
+2. Another p
 
 Filtering workflow
 ~~~~~~~~~~
