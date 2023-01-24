@@ -1258,11 +1258,5 @@ def gradient_ascent_filter_matrix_torch2(A, D, U, ascent, lr,regu, iterNum, verb
         D = D.diagonal()
         D = torch.clip(D,0,1)
         D = D.diagonal()
-
-        def diag_projection(D):
-            T = numba_diagonal(D)  # .diagonal()
-            T = numba_vec_clip(T, len(T), 0, 1)
-            return np.diag(T)
-
         j += 1
     return D
