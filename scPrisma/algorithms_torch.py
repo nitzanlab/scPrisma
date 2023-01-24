@@ -259,15 +259,13 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     V = ge_to_spectral_matrix(A, optimize_alpha=False)
     V = V.T
-    A = torch.tensor(A.astype(float), device=device)
-    V = torch.tensor(V.astype(float), device=device)
-    E = torch.ones((n, n))
-    E = E.type(torch.float32)
-    step = torch.zeros(E.shape)
-    step = step.type(torch.float32)
-    A = A.to(device)
-    E = E.to(device)
-    step = step.to(device)
+    A = torch.tensor(A, dtype=torch.float32, device=device)
+    V = torch.tensor(V,dtype=torch.float32, device=device)
+    step = torch.zeros(E.shape, dtype=torch.float32, device=device)
+    E = torch.ones((n, n), dtype=torch.float32, device=device)
+
+
+
     E = sga_matrix_momentum_torch(A, E=E / n, V=V, iterNum=iterNum, step=step, batch_size=batch_size, gamma=gamma,
                                   device=device, lr=lr, verbose=verbose)
     E_cpu = (E.cpu()).numpy()
