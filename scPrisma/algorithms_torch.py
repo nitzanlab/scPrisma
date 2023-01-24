@@ -430,7 +430,7 @@ def gradient_descent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, it
         epsilon_t *= 0.995
         # T = D.diagonal()#numba_diagonal(D)#.diagonal()
         # grad = ATUUTA * T - regu * torch.sign(D)
-        T = T - ascent * epsilon_t * (ATUUTA * T).diag() + regu * torch.sign(T)
+        T = T - ascent *( epsilon_t * (ATUUTA * T).diag() - regu * torch.sign(T))
         T = torch.clip(T, 0, 1)
         j += 1
     print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
@@ -985,7 +985,7 @@ def filter_linear_genes_torch(A: np.ndarray, regu: float=0.1, iterNum: int=500, 
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
     del T
     del U
