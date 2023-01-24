@@ -109,7 +109,11 @@ This can be done in two ways:
       D = scPrisma.algorithms.filter_cyclic_genes(adata.X,regu=0, iterNum=100)
       adata.X = adata.X @ D
 
-2. Another p
+2. Another possibility is to select a fixed number of genes to retain based on their projection over the theoretical spectrum. This is similar to adjusting the regularization parameter to retain this number of genes::
+
+      D = scPrisma.algorithms.filter_non_cyclic_genes_by_proj(adata_enhancement.X,n_genes=500)
+      adata_enhancement.X = adata_enhancement.X @ D
+
 
 Filtering workflow
 ~~~~~~~~~~
