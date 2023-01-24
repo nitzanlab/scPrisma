@@ -371,7 +371,7 @@ def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_descent_filter_matrix_torch(A, T=T, U=U, regu=regu, lr=lr, iterNum=iterNum)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
     del T
     del U
@@ -985,7 +985,7 @@ def filter_linear_genes_torch(A: np.ndarray, regu: float=0.1, iterNum: int=500, 
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
     T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_ascent_filter_matrix_torch(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D_gpu = gradient_ascent_filter_matrix_torch2(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
     del T
     del U
@@ -1210,3 +1210,59 @@ def enhance_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, r
     F = F_gpu.cpu().detach().numpy()
     del F_gpu
     return F
+
+
+def gradient_ascent_filter_matrix_torch2(A, D, U, ascent, lr,regu, iterNum, verbose= True):
+    """
+    Finds the diagonal filter matrix by gradient ascent/descent optimization.
+
+    Parameters
+    ----------
+    A : np.ndarray
+        Gene expression matrix.
+    D : np.ndarray
+        Diagonal filter matrix (initial value).
+    U : np.ndarray
+        Eigenvectors matrix multiple by sqrt of diagonal eigenvalues matrix.
+    ascent : int, optional
+        1 - gradient ascent , -1 - gradient decent, by default 1.
+    lr : float, optional
+        Learning rate, by default 0.1.
+    regu : float, optional
+        Regularization parameter, by default 0.1.
+    iterNum : int, optional
+        Number of iterations, by default 400.
+    verbose : bool, optional
+        Prints the iteration number and function value if true, by default True.
+
+    Returns
+    -------
+    np.ndarray
+        Diagonal filter matrix.
+    """
+    j = 0
+    val = 0
+    epsilon_t = lr
+    ATUUTA = (2 * ((((A.T).mm(U)).mm(U.T)).mm(A)))
+    while (j < iterNum):
+        if j % 25 == 1:
+            if verbose:
+                print("Iteration number: ")
+                print(j)
+                print("function value= ")
+                print(val)
+        epsilon_t *= 0.995
+        T = D.diagonal()  # .diagonal()
+        grad = ATUUTA * T - regu * torch.sign(D)
+        D = D + ascent * epsilon_t * grad
+        D = D.diagonal()
+        D = torch.clip(D,0,1)
+        D = D.diagonal()
+
+        def diag_projection(D):
+            T = numba_diagonal(D)  # .diagonal()
+            T = numba_vec_clip(T, len(T), 0, 1)
+            return np.diag(T)
+
+        j += 1
+    return D
