@@ -980,12 +980,12 @@ def filter_linear_genes_torch(A: np.ndarray, regu: float=0.1, iterNum: int=500, 
                                        normalize_vectors=True)
     U = eigenvectors[:, 1:]
     A = gene_normalization(A)
-    T = np.ones((p)) / 2
+    D = np.ones((p,p)) / 2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = torch.tensor(A.astype(float), device=device)
     U = torch.tensor(U.astype(float), device=device)
-    T = torch.tensor(T.astype(float), device=device)
-    D_gpu = gradient_ascent_filter_matrix_torch2(A, T=T, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D = torch.tensor(D.astype(float), device=device)
+    D_gpu = gradient_ascent_filter_matrix_torch2(A, D=D, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
     del T
     del U
