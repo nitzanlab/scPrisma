@@ -987,7 +987,7 @@ def filter_linear_genes_torch(A: np.ndarray, regu: float=0.1, iterNum: int=500, 
     D = torch.tensor(D.astype(float), device=device)
     D_gpu = gradient_ascent_filter_matrix_torch2(A, D=D, U=U, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
     D = D_gpu.cpu().detach().numpy()
-    del D
+    del D_gpu
     del U
     del A
     return D
