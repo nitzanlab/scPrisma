@@ -261,8 +261,8 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     V = V.T
     A = torch.tensor(A, dtype=torch.float32, device=device)
     V = torch.tensor(V,dtype=torch.float32, device=device)
-    step = torch.zeros(E.shape, dtype=torch.float32, device=device)
     E = torch.ones((n, n), dtype=torch.float32, device=device)
+    step = torch.zeros(E.shape, dtype=torch.float32, device=device)
 
 
 
