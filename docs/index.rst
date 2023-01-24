@@ -100,7 +100,16 @@ Enhancement workflow
 
 Genes inference
 ******
-T
+After obtaining the reconstructed signal, either through solving the reconstruction problem or by using prior knowledge, we will proceed to identify the genes that are relevant to the desired signal.
+
+This can be done in two ways:
+
+1. Using the genes inference algorithm
+
+
+Filtering workflow
+~~~~~~~~~~
+
 General topology
 -------
 
