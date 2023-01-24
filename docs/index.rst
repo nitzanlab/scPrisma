@@ -95,11 +95,12 @@ he filtering workflow consist of two stages: reconstruction of the cyclic signal
 
 this can be done using the reconstriction algorithm:
 
-Enhancement workflow-genes inference
+Enhancement workflow
 ~~~~~~~~~~
 
-dsasdads
+Genes inference
 ******
+T
 General topology
 -------
 
