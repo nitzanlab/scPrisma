@@ -104,7 +104,7 @@ After obtaining the reconstructed signal, either through solving the reconstruct
 
 This can be done in two ways:
 
-1. Using the genes inference algorithm
+1. Using the genes inference algorithm. Due to convexity considerations, it is easier to infer genes that are not related to the desired signal, and then flip the results.
 
 
 Filtering workflow
