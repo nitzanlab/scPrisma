@@ -51,4 +51,5 @@ pytest tests/gpu
 
 <!-- CONTACT -->
 ## Contact
-Jonathan Karin - jonathan.karin [at ] mail.huji.ac.il
+Jonathan Karin - jonathan.karin [at ] mail.huji.ac.il <br />
+[Forum](https://github.com/nitzanlab/scPrisma/discussions)
