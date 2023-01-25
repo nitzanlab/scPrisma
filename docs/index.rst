@@ -129,12 +129,12 @@ Here we also need to tune the regularization parameter. Higher regularization wi
 
 Filtering workflow
 ~~~~~~~~~~
-If insead of enhancing the reconstructed signal, we want to filter it out we can use cyclic filtering algorithm. Here, we also have a regularization parameter, higher regularization will keep more expression profiles.
+If insead of enhancing the reconstructed signal, we want to filter it out we can use cyclic filtering algorithm. Here, we also have a regularization parameter, higher regularization will keep more expression profiles. An example is available in the following  
+`tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.adata_filtering`` instead of the mentioned functions::
 
       adata_filtering= adata.copy()
       F = scPrisma.algorithms.filtering_cyclic(adata_filtering.X,regu=0.01)
       adata_filtering.X = adata_filtering.X * F
-
 
 
 General topology
