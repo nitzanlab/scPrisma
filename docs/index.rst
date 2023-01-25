@@ -141,5 +141,15 @@ General topology
 -------
 In addition to the circular topology, it is possible to enhance/filter out a topology which is represented by a covaraince matrix designed by the user.
 
+The principles we use for creating a theoretical covariance matrix are as follows:
+
+1. scPrisma is intended for continuous topologies, particularly circular topologies for which a closed formula for the spectrum exists. The optimal design approach is to construct a similar "toy model" as done for the circular topology in the "Methods" section, determine its corresponding covariance matrix, and conduct numerical eigen decomposition. Note that, as stated in the discussion, reconstructing complex topologies other than cyclic would be difficult.
+
+2. The covariance matrix should be a symmetric positive semi-definite matrix (to allow for numerical eigendecomposition) with ones on the diagonal of the matrix.
+
+3. In certain situations, it is advisable to remove the dominant eigenvector, particularly when it is an 'offset' eigenvector, such as in the case of a cyclic covariance matrix where the leading eigenvector is a constant eigenvector.
+
+
 Reconstruction
 ~~~~~~~~~~
+As explained in the manuscript, the reconstruction task is very challenging for non-trivial topologies. Therefore, it is recomended to use experimental prior knowledge for this task, or use tools like `novoSpaRc <https://novosparc.readthedocs.io/>`_.
