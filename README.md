@@ -1,10 +1,30 @@
 # scPrisma
-scPrisma is a spectral analysis method, for pseudotime reconstruction, informative genes inference, filtering, and enhancement of underlying cyclic signals
+scPrisma is a spectral analysis method, for pseudotime reconstruction, informative genes inference, filtering, and enhancement of underlying topological signals.
+![workflow](https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true)
+
+<!-- Manuscript -->
+<h4> [scPrisma manuscript](https://www.biorxiv.org/content/10.1101/2022.06.07.493867v1)</h4>
+
+<!-- GETTING STARTED -->
+For documentation please refer to [scPrisma documentation](https://scprisma.readthedocs.io/en/latest/).
+
+<!-- Reproducibility -->
 <h4> For reproducibility of scPrisma manuscript, please refer to:<br /> https://github.com/nitzanlab/scPrisma_notebooks</h4>
 
+<!-- Installation -->
+## Getting Started
 
-![workflow](https://github.com/nitzanlab/scPrisma/blob/main/workflow.png)
+```sh
+git clone https://github.com/nitzanlab/scPrisma.git
+cd scPrisma
+pip install .
+For running the gpu version install it like so pip install ."[gpu]"
+```
+
+
 <br />
+
+
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
@@ -37,6 +57,8 @@ cd scPrisma
 pip install .
 For running the gpu version install it like so pip install ."[gpu]"
 ```
+
+##
 ## Imports
 It is recommended to use ['scanpy'](https://scanpy.readthedocs.io/en/stable/index.html) package. 
 
