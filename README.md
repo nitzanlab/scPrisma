@@ -3,16 +3,19 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 ![workflow](https://github.com/nitzanlab/scPrisma/blob/master/workflow.png?raw=true)
 
 <!-- Manuscript -->
+## Manuscript
 [scPrisma manuscript](https://www.biorxiv.org/content/10.1101/2022.06.07.493867v1)
 
 <!-- GETTING STARTED -->
+## Getting Started
 For documentation please refer to [scPrisma documentation](https://scprisma.readthedocs.io/en/latest/).
 
 <!-- Reproducibility -->
+## Reproducibility
 <h4> For reproducibility of scPrisma manuscript, please refer to:<br /> https://github.com/nitzanlab/scPrisma_notebooks</h4>
 
 <!-- Installation -->
-## Getting Started
+## Installation
 
 ```sh
 git clone https://github.com/nitzanlab/scPrisma.git
@@ -20,9 +23,11 @@ cd scPrisma
 pip install .
 For running the gpu version install it like so pip install ."[gpu]"
 ```
-
-
 <br />
+<!-- Tutorials -->
+## Tutorials
+[CPU tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials/cpu)
+[GPU tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials/gpu)
 
 
 <!-- TABLE OF CONTENTS -->
