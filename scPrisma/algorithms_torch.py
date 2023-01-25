@@ -718,6 +718,7 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
     F: np.array
          Filtering matrix
     """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     B = A.copy()
     V = torch.tensor(np.array(get_theoretic_eigen(cov)).astype(float), device=device)
     VVT = (V).mm(V.T)
@@ -1231,4 +1232,24 @@ def gradient_ascent_filter_matrix_torch(A, D, U, ascent=1, lr=0.1,regu=0.1, iter
         D = torch.clip(D,0,1)
         D = D.diag()
         j += 1
+    return D
+
+
+def gene_inference_general_covariance_torch(A, cov, regu=0.5, iterNum=100, lr=0.1):
+    V = np.array(get_theoretic_eigen(cov))
+    A = gene_normalization(A)
+    p = A.shape[1]
+    D = np.ones((p,p)) / 2
+    A = torch.from_numpy(A)
+    V = torch.from_numpy(V)
+    D = torch.from_numpy(D)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    A = A.to(device)
+    V = V.to(device)
+    D = D.to(device)
+    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    D = D_gpu.cpu().detach().numpy()
+    del A
+    del V
+    del D_gpu
     return D
