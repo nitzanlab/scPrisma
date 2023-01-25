@@ -139,7 +139,7 @@ If insead of enhancing the reconstructed signal, we want to filter it out we can
 
 General topology
 -------
-
+In addition to the circular topology, it is possible to enhance/filter out a topology which is represented by a covaraince matrix designed by the user.
 
 Reconstruction
 ~~~~~~~~~~
