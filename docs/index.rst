@@ -106,14 +106,16 @@ This can be done in two ways:
 
 1. Using the genes inference algorithm. Due to convexity considerations, it is easier to infer genes that are not related to the desired signal, and then flip the results. The regularization parameter is the only parameter that should be tuned. By keeping a large value, the  algorithm would keep more cyclic genes, which would then be filtered later by flipping. The optimal way to tune this parameter is when we have known 'flat' genes (which we want to filter out) and known 'cyclic' genes (which we want to keep). An example for the tuning of this parameter is available in this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/tutorial_de_novo_reconstruction.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_cyclic_genes_torch`` instead of the mentioned functions::
 
-      D = scPrisma.algorithms.filter_cyclic_genes(adata.X,regu=0, iterNum=100)
-      adata.X = adata.X @ D
+      adata_enhancement= adata.copy()
+      D = scPrisma.algorithms.filter_cyclic_genes(adata_enhancement.X,regu=0, iterNum=100)
+      adata_enhancement.X = adata_enhancement.X @ D
 
 2. Another possibility is to select a fixed number of genes to retain based on their projection over the theoretical spectrum. This is similar to adjusting the regularization parameter to retain this number of genes.  An example is available in the following  
 `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_non_cyclic_genes_by_proj_torch`` instead of the mentioned functions::
 
-      D = scPrisma.algorithms.filter_non_cyclic_genes_by_proj(adata.X,n_genes=500)
-      adata.X = adata.X @ D
+      adata_enhancement= adata.copy()
+      D = scPrisma.algorithms.filter_non_cyclic_genes_by_proj(adata_enhancement.X,n_genes=500)
+      adata_enhancement.X = adata_enhancement.X @ D
 
 
 Enhancement
@@ -122,11 +124,18 @@ Next, We will clear from them the expression profiles which are not related to t
 Here we also need to tune the regularization parameter. Higher regularization will filter out more expression profiles which are not related to the reconstructed signal. An example is available in the following  
 `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.enhancement_cyclic_torch`` instead of the mentioned functions::
 
-      F = scPrisma.algorithms.enhancement_cyclic(adata.X,regu=0.01)
-      adata.X = adata.X * F
+      F = scPrisma.algorithms.enhancement_cyclic(adata_enhancement.X,regu=0.01)
+      adata_enhancement.X = adata_enhancement.X * F
 
 Filtering workflow
 ~~~~~~~~~~
+If insead of enhancing the reconstructed signal, we want to filter it out we can use cyclic filtering algorithm. Here, we also have a regularization parameter, higher regularization will keep more expression profiles.
+
+      adata_filtering= adata.copy()
+      F = scPrisma.algorithms.filtering_cyclic(adata_filtering.X,regu=0.01)
+      adata_filtering.X = adata_filtering.X * F
+
+
 
 General topology
 -------
