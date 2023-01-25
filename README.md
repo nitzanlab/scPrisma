@@ -24,8 +24,10 @@ pip install .
 For running the gpu version install it like so pip install ."[gpu]"
 ```
 <br />
+
 <!-- Tutorials -->
 ## Tutorials
+
 [CPU tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials/cpu)
 [GPU tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials/gpu)
 
