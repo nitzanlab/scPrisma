@@ -112,12 +112,18 @@ This can be done in two ways:
 2. Another possibility is to select a fixed number of genes to retain based on their projection over the theoretical spectrum. This is similar to adjusting the regularization parameter to retain this number of genes.  An example is available in the following  
 `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_non_cyclic_genes_by_proj_torch`` instead of the mentioned functions::
 
-      D = scPrisma.algorithms.filter_non_cyclic_genes_by_proj(adata_enhancement.X,n_genes=500)
-      adata_enhancement.X = adata_enhancement.X @ D
+      D = scPrisma.algorithms.filter_non_cyclic_genes_by_proj(adata.X,n_genes=500)
+      adata.X = adata.X @ D
 
 
 Enhancement
 ******
+Next, We will clear from them the expression profiles which are not related to the desired signal.
+Here we also need to tune the regularization parameter. Higher regularization will filter out more expression profiles which are not related to the reconstructed signal. An example is available in the following  
+`tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/hematopoietic_progenitors_reconstruction_with_partial_prior_knowledge.ipynb>`_. If you use the GPU version, you should use ``scPrisma.algorithms_torch.enhancement_cyclic_torch`` instead of the mentioned functions::
+
+      F = scPrisma.algorithms.enhancement_cyclic(adata.X,regu=0.01)
+      adata.X = adata.X * F
 
 Filtering workflow
 ~~~~~~~~~~
