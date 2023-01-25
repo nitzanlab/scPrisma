@@ -1905,3 +1905,31 @@ def enhance_general_covariance(A, cov, regu=0, epsilon=0.1, iterNum=100, regu_no
     B = normalize(B, axis=1, norm='l2')
     F = stochastic_gradient_ascent_full(B, np.ones(B.shape).astype(float), V=V, regu=regu, epsilon=epsilon, iterNum=iterNum)
     return F
+
+def gene_inference_general_topology(A, cov, regu=0.5, iterNum=100, lr=0.1):
+    """
+    Infer the genes which are non-smooth over given covariance.
+    Parameters
+    ----------
+    A : numpy array
+        The gene expression matrix.
+    cov : numpy array
+        The theoretical covariance matrix.
+    regu : float, optional
+        Regularization coefficient. Default is 0.5.
+    iterNum : int, optional
+        Number of iterations. Default is 100.
+    lr : float, optional
+        Learning rate. Default is 0.1.
+    Returns
+    -------
+    numpy array
+        The filtering matrix.
+    """
+    A = np.array(A).astype('float64')
+    V = np.array(get_theoretic_eigen(cov)).astype(float)
+    A = gene_normalization(A)
+    p = A.shape[1]
+    D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2,  U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
+    return D
+
