@@ -149,7 +149,51 @@ The principles we use for creating a theoretical covariance matrix are as follow
 
 3. In certain situations, it is advisable to remove the dominant eigenvector, particularly when it is an 'offset' eigenvector, such as in the case of a cyclic covariance matrix where the leading eigenvector is a constant eigenvector.
 
+Along this file, we will call the theoretical covarnace matrix ``cov``.
 
 Reconstruction
 ~~~~~~~~~~
 As explained in the manuscript, the reconstruction task is very challenging for non-trivial topologies. Therefore, it is recomended to use experimental prior knowledge for this task, or use tools like `novoSpaRc <https://novosparc.readthedocs.io/>`_.
+
+Enhancement workflow
+~~~~~~~~~~
+We recommend following this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/gpu/general_matrix_enhancement_gpu.ipynb>`_.
+
+Genes inference
+******
+As in the cyclic workflow, we need to identify the genes that are relevant to the desired signal.
+
+This can be done in two ways:
+
+1. Using the genes inference algorithm. If you use the GPU version, you should use ``scPrisma.algorithms_torch.gene_inference_general_covariance_torch`` instead of the mentioned functions::
+
+      adata_enhancement= adata.copy()
+      D = scPrisma.algorithms.gene_inference_general_covariance(adata_enhancement.X,cov, regu=0, iterNum=100)
+      adata_enhancement.X = adata_enhancement.X @ D
+
+2. Another possibility is to select a fixed number of genes to retain based on their projection over the theoretical spectrum.If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_non_cyclic_genes_by_proj_torch`` instead of the mentioned functions::
+
+      adata_enhancement= adata.copy()
+      D = scPrisma.algorithms.filter_general_genes_by_proj(adata_enhancement.X,cov, n_genes=1000)
+      adata_enhancement.X = adata_enhancement.X @ D
+
+Enhancement
+******
+Next, We will clear from them the expression profiles which are not related to the desired signal.
+Here we also need to tune the regularization parameter. Higher regularization will filter out more expression profiles which are not related to the reconstructed signal. If you use the GPU version, you should use ``scPrisma.algorithms_torch.enhance_general_covariance_torch`` instead of the mentioned function::
+
+      F = scPrisma.algorithms.enhance_general_covariance(adata_enhancement.X,cov, regu=0.01)
+      adata_enhancement.X = adata_enhancement.X * F
+
+
+Filtering workflow
+~~~~~~~~~~
+We recommend following this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/gpu/general_matrix_filtering_gpu.ipynb>`_.
+
+If insead of enhancing the reconstructed signal, we want to filter it out we can use the filtering algorithm. Here, we also have a regularization parameter, higher regularization will keep more expression profiles. If you use the GPU version, you should use ``scPrisma.algorithms_torch.filter_general_covariance_torch`` instead of the mentioned functions::
+
+      adata_filtering= adata.copy()
+      F = scPrisma.algorithms.filter_general_covariance(adata_filtering.X,cov, regu=0.01)
+      adata_filtering.X = adata_filtering.X * F
+
+
