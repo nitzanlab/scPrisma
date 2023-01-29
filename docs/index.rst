@@ -139,7 +139,7 @@ If insead of enhancing the reconstructed signal, we want to filter it out we can
 
 General topology
 -------
-In addition to the circular topology, it is possible to enhance/filter out a topology which is represented by a covaraince matrix designed by the user.
+In addition to the circular topology, it is possible to enhance/filter out a topology which is represented by a covariance matrix designed by the user.
 
 The principles we use for creating a theoretical covariance matrix are as follows:
 
@@ -149,7 +149,7 @@ The principles we use for creating a theoretical covariance matrix are as follow
 
 3. In certain situations, it is advisable to remove the dominant eigenvector, particularly when it is an 'offset' eigenvector, such as in the case of a cyclic covariance matrix where the leading eigenvector is a constant eigenvector.
 
-Along this file, we will call the theoretical covarnace matrix ``cov``.
+Along this file, we will call the theoretical covariance matrix ``cov``.
 
 Reconstruction
 ~~~~~~~~~~
