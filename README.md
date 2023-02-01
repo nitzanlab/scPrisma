@@ -4,7 +4,7 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 
 <!-- Manuscript -->
 ## Manuscript
-[scPrisma manuscript](https://www.biorxiv.org/content/10.1101/2022.06.07.493867v1)
+[Karin, Jonathan, Yonathan Bornfeld, and Mor Nitzan. "scPrisma: inference, filtering and enhancement of periodic signals in single-cell data using spectral template matching." bioRxiv (2022): 2022-06.](https://www.biorxiv.org/content/10.1101/2022.06.07.493867v1)
 
 <!-- GETTING STARTED -->
 ## Getting Started
