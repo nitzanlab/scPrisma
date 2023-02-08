@@ -48,7 +48,7 @@ First, import ``scPrisma``, ``scanpy`` and ``numpy``. If you use the GPU version
 
 
 
-Cyclic signals Workflows
+Cyclic signals workflows
 -------
 The core of scPrisma utilizes spectral template matching between the spectrum (the eigendecomposition of the covariance matrix) of a set of single-cell data (e.g. scRNA-seq), and the expected analytical spectrum of a structure or process we aim to enhance or filter.
 
@@ -153,10 +153,12 @@ Along this file, we will call the theoretical covariance matrix ``cov``.
 
 Reconstruction
 ~~~~~~~~~~
+
 As explained in the manuscript, the reconstruction task is very challenging for non-trivial topologies. Therefore, it is recomended to use experimental prior knowledge for this task, or use tools like `novoSpaRc <https://novosparc.readthedocs.io/>`_.
 
 Enhancement workflow
 ~~~~~~~~~~
+
 We recommend following this `tutorial <https://github.com/nitzanlab/scPrisma/blob/master/tutorials/gpu/general_matrix_enhancement_gpu.ipynb>`_.
 
 Genes inference
