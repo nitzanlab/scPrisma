@@ -39,7 +39,7 @@ def ge_to_spectral_matrix(A, optimize_alpha=True):
     A: np.array
         Gene expression matrix
     optimize_alpha: bool
-        Find the alpha value using optimization problem or by using the close formula
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     Returns: np.array
         spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
     -------
@@ -242,14 +242,35 @@ def sga_matrix_boosted_torch(A, E, V, iterNum=400, batch_size=20, lr=0.1, verbos
 
 
 def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, verbose=True, final_loss=False,
-                                boosted=False):
+                                boosted=False, optimize_alpha=False):
     '''
     Cyclic reorder rows using stochastic gradient ascent
-    :param A: gene expression matrix
-    :param iterNum:  iteration number
-    :param batch_size: batch size
-    :param gamma: momentum parameter
-    :return: permutation matrix
+    Parameters
+    ----------
+    A: np.array
+        Gene expression matrix
+    iterNum: int
+        Number of stochastic gradient ascent iterations
+    batch_size: int
+        batch size, number of genes sampled per batch
+    lr: float
+        Learning rate
+    gamma: float
+        Momentum parameter
+    verbose: bool
+        verbosity
+    final_loss: bool
+        For validation, retain False
+    boosted: bool
+        For validation, retain False
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
+    Returns
+    E: np.array
+        Bi-Stochastic matrix
+    E_recon: np.array
+        Permutation matrix (which is calculated by greedy rounding of 'E' matrix).
+    -------
     '''
     if batch_size == None:
         batch_size = int((A.shape[0]) * 0.75)
@@ -257,7 +278,7 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
     n = A.shape[0]
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    V = ge_to_spectral_matrix(A, optimize_alpha=False)
+    V = ge_to_spectral_matrix(A, optimize_alpha)
     V = V.T
     A = torch.tensor(A, dtype=torch.float32, device=device)
     V = torch.tensor(V,dtype=torch.float32, device=device)
@@ -275,7 +296,7 @@ def reconstruction_cyclic_torch(A, iterNum=300, batch_size=None, gamma=0.5, lr=0
 
 
 def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gamma=0.9, lr=0.1, verbose=True,
-                                        final_loss=False, boosted=False):
+                                        final_loss=False, boosted=False, optimize_alpha=False):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     :param A: gene expression matrix
@@ -290,7 +311,7 @@ def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gamma=0
     n = A.shape[0]
     p = A.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    V = ge_to_spectral_matrix(A, optimize_alpha=False)
+    V = ge_to_spectral_matrix(A, optimize_alpha=optimize_alpha)
     A = torch.from_numpy(A)
     A = A.type(torch.float32)
     A = A.float()
@@ -325,18 +346,20 @@ def reconstruction_cyclic_torch_boosted(A, iterNum=300, batch_size=None, gamma=0
     return E, E_recon
 
 
-def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
+def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500, optimize_alpha=False):
     '''
     :param A: gene expression matrix
     :param regu: regularization parameter
     :param iterNum: iteration number
     :param lr: learning rate
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     :return: diagonal filtering matrix
     '''
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
-    U = ge_to_spectral_matrix(A)
+    U = ge_to_spectral_matrix(A, optimize_alpha=optimize_alpha)
     U = U.T
     A = gene_normalization(A)
     D = np.ones((p,p)) / 2
@@ -352,18 +375,20 @@ def filter_non_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
     return D
 
 
-def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500):
+def filter_cyclic_genes_torch(A, regu=0.1, lr=0.1, iterNum=500, optimize_alpha=False):
     '''
     :param A: gene expression matrix
     :param regu: regularization parameter
     :param iterNum: iteration number
     :param lr: learning rate
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     :return: diagonal filtering matrix
     '''
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
-    U = ge_to_spectral_matrix(A)
+    U = ge_to_spectral_matrix(A, optimize_alpha=optimize_alpha)
     U = U.T
     A = gene_normalization(A)
     D = np.ones((p,p)) / 2
@@ -412,14 +437,21 @@ def gradient_descent_filter_matrix_torch(A, T, U, ascent=1, lr=0.1, regu=0.1, it
 
 def enhancement_cyclic_torch(A, regu=0.1, iterNum=100, verbosity=25, error=10e-7, optimize_alpha=False,
                              line_search=False):
-    ''' Enhancement of cyclic signal
-    :param A: Gene expression matrix (reordered according to cyclic ordering)
-    :param regu: regularization coefficient
-    :param iterNum: iteration number
-    :return: filtering matrix
-    '''
+    """
+    The function enhancement_cyclic enhances the cyclic signal by applying stochastic gradient ascent method.
+    Parameters:
+    A (numpy.ndarray): The gene expression matrix reordered according to cyclic ordering.
+    regu (float, optional): The regularization coefficient. Default is 0.1.
+    iterNum (int, optional): The number of iterations for the gradient ascent. Default is 300.
+    verbosity (int, optional): The verbosity level. Default is 25.
+    optimize_alpha (bool, optional):
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
+
+    Returns:
+    numpy.ndarray: Enhancement matrix.
+    """
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A, optimize_alpha=False)
+    V = ge_to_spectral_matrix(A, optimize_alpha=optimize_alpha)
     V = V.T
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     A = torch.tensor(A, dtype=torch.float32, device=device)
@@ -447,6 +479,7 @@ def filtering_cyclic_torch(A, regu=0.1, iterNum=100, verbosity=25, error=10e-7, 
     error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
     optimize_alpha (bool, optional): Whether to optimize the regularization parameter. Default is True.
     line_search (bool, optional): Whether to use line search. Default is True.
+    optimize_alpha (bool, optional): Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     Returns:
     torch.tensor: Filtering matrix.
     """
@@ -718,7 +751,6 @@ def filter_general_covariance_torch(A, cov, regu=0, epsilon=0.1, iterNum=100, de
     F: np.array
          Filtering matrix
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     B = A.copy()
     V = torch.tensor(np.array(get_theoretic_eigen(cov)).astype(float), device=device)
     VVT = (V).mm(V.T)
@@ -771,6 +803,8 @@ def reorder_indicator_torch(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
         Momentum parameter. Default is 0.
     lr : float, optional
         Learning rate. Default is 0.1.
+    optimize_alpha : bool, optional
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -1049,7 +1083,7 @@ def filter_genes_by_proj_torch(A: torch.tensor, V: torch.tensor, n_genes: int = 
     D[x,x]=1
     return D
 
-def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, percent_genes: float = None, optimize_alpha: bool=False) -> np.ndarray:
     """
     Filters non cyclic genes from a matrix A.
     If n_genes is not provided, the function will select the top half of the genes by default.
@@ -1063,6 +1097,8 @@ def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, p
         The number of genes to select, by default None
     percent_genes : float, optional
         The percent of genes to select, by default None
+    optimize_alpha : bool, optional:
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -1072,7 +1108,7 @@ def filter_non_cyclic_genes_by_proj_torch(A: np.ndarray,  n_genes: int = None, p
     """
     A = np.array(A).astype('float64')
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A, optimize_alpha=False)
     A = gene_normalization(A)
     V=V.T
     V = torch.from_numpy(V).to(float)
@@ -1232,24 +1268,4 @@ def gradient_ascent_filter_matrix_torch(A, D, U, ascent=1, lr=0.1,regu=0.1, iter
         D = torch.clip(D,0,1)
         D = D.diag()
         j += 1
-    return D
-
-
-def gene_inference_general_covariance_torch(A, cov, regu=0.5, iterNum=100, lr=0.1):
-    V = np.array(get_theoretic_eigen(cov))
-    A = gene_normalization(A)
-    p = A.shape[1]
-    D = np.ones((p,p)) / 2
-    A = torch.from_numpy(A)
-    V = torch.from_numpy(V)
-    D = torch.from_numpy(D)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    A = A.to(device)
-    V = V.to(device)
-    D = D.to(device)
-    D_gpu = gradient_ascent_filter_matrix_torch(A, D=D, U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
-    D = D_gpu.cpu().detach().numpy()
-    del A
-    del V
-    del D_gpu
     return D

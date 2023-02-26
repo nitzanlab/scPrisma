@@ -75,9 +75,7 @@ def ge_to_spectral_matrix(A, optimize_alpha=True):
     A: np.array
         Gene expression matrix
     optimize_alpha: bool
-        Find the alpha value using optimization problem or by using the close formula
-
-
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     Returns: np.array
         spectral matrix (concatenated eigenvectors multiplied by their appropriate eigenvalues)
     -------
@@ -100,33 +98,6 @@ def ge_to_spectral_matrix(A, optimize_alpha=True):
     return V
 
 
-def sga_reorder_rows_matrix(A, iterNum=300, batch_size=20):
-    '''
-    Reconstruction algorithm (without momentum)
-    Parameters
-    ----------
-    A: np.array
-        Gene expression matrix
-    iterNum: int
-        Number of stochastic gradient ascent iterations
-    batch_size: int
-        batch size, number of genes sampled per batch
-
-    Returns
-    E: np.array
-        Bi-Stochastic matrix
-    E_recon: np.array
-        Permutation matrix (which is calculated by greedy rounding of 'E' matrix).
-
-    -------
-
-    '''
-    A = cell_normalization(A)
-    n = A.shape[0]
-    V = ge_to_spectral_matrix(A)
-    E = sga_matrix(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size)
-    E_recon = reconstruct_e(E)
-    return E , E_recon
 
 
 @jit(nopython=True, parallel=True)
@@ -363,42 +334,8 @@ def sga_matrix_momentum_indicator(A, E, V, IN, iterNum=400, batch_size=20, lr=0.
     return E
 
 
-def sga_m_reorder_rows_matrix(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1):
-    '''
-    Cyclic reorder rows using stochastic gradient ascent
-    Parameters
-    ----------
-    A: np.array
-        Gene expression matrix
-    iterNum: int
-        Number of stochastic gradient ascent iterations
-    batch_size: int
-        batch size, number of genes sampled per batch
-    lr: float
-        Learning rate
-    gamma: float
-        Momentum parameter
 
-    Returns
-    E: np.array
-        Bi-Stochastic matrix
-    E_recon: np.array
-        Permutation matrix (which is calculated by greedy rounding of 'E' matrix).
-    -------
-
-    '''
-    if batch_size == None:
-        batch_size = int((A.shape[0]) * 0.75)
-    A = cell_normalization(A)
-    n = A.shape[0]
-    p = A.shape[1]
-    V = ge_to_spectral_matrix(A)
-    E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr)
-    E_recon = reconstruct_e(E)
-    return E, E_recon
-
-
-def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, verbose=True, final_loss=False):
+def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, verbose=True, final_loss=False, optimize_alpha=True):
     '''
     Cyclic reorder rows using stochastic gradient ascent
     Parameters
@@ -417,6 +354,8 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, ve
         verbosity
     final_loss: bool
         For validation, retain False
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
     Returns
     E: np.array
         Bi-Stochastic matrix
@@ -431,7 +370,7 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, ve
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A , optimize_alpha)
     E = sga_matrix_momentum(A, E=np.ones((n, n)) / n, V=V.T, iterNum=iterNum, batch_size=batch_size, gamma=gamma, lr=lr, verbose=verbose)
     E_recon = reconstruct_e(E)
     if final_loss:
@@ -440,7 +379,7 @@ def reconstruction_cyclic(A, iterNum=300, batch_size=None, gamma=0.5, lr=0.1, ve
     return E, E_recon
 
 
-def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500) -> np.array:
+def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500, optimize_alpha=True) -> np.array:
     '''
     Filter out genes which are not smooth over the inferred circular topology. As a prior step for this algorithm, the reconstruction algorithm should be applied.
 
@@ -454,6 +393,8 @@ def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500) -> np.array:
         Learning rate
     iterNum: int
         Number of stochastic gradient ascent iterations
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -464,13 +405,13 @@ def filter_non_cyclic_genes(A, regu=0.1, lr=0.1, iterNum=500) -> np.array:
     A = cell_normalization(A)
     n = A.shape[0]
     p = A.shape[1]
-    U = ge_to_spectral_matrix(A)
+    U = ge_to_spectral_matrix(A, optimize_alpha)
     A = gene_normalization(A)
     D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2, U=U.T, regu=regu, lr=lr, iterNum=iterNum)
     return D
 
 
-def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1, verbose=True):
+def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1, verbose=True, optimize_alpha=True):
     '''
     Filter out genes which are smooth over the inferred circular topology. As a prior step for this algorithm, the reconstruction algorithm should be applied.
 
@@ -484,6 +425,8 @@ def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1, verbose=True):
         Learning rate
     iterNum: int
         Number of stochastic gradient ascent iterations
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -494,14 +437,14 @@ def filter_cyclic_genes(A, regu=0.1, iterNum=500, lr=0.1, verbose=True):
     A = np.array(A).astype('float64')
     V = cell_normalization(A)
     p = V.shape[1]
-    U = ge_to_spectral_matrix(V)
+    U = ge_to_spectral_matrix(V, optimize_alpha)
     A = gene_normalization(A)
     D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2, ascent=-1, U=U.T, regu=regu, iterNum=iterNum, lr=lr,
                                       verbose=verbose)
     return D
 
 
-def filter_cyclic_genes_line(A: np.ndarray, regu: float=0.1, iterNum: int=500,  verbosity: int=25) -> np.ndarray:
+def filter_cyclic_genes_line(A: np.ndarray, regu: float=0.1, iterNum: int=500,  verbosity: int=25, optimize_alpha: bool=True) -> np.ndarray:
     """
     Filter cyclic genes from gene expression matrix using line-search gradient descent method.
 
@@ -515,6 +458,8 @@ def filter_cyclic_genes_line(A: np.ndarray, regu: float=0.1, iterNum: int=500,  
         Number of iterations.
     verbosity : int, optional
         Verbosity of the gradient descent algorithm.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -525,7 +470,7 @@ def filter_cyclic_genes_line(A: np.ndarray, regu: float=0.1, iterNum: int=500,  
     A = np.array(A, dtype=np.float64)
     V = cell_normalization(A)
     p = V.shape[1]
-    U = ge_to_spectral_matrix(V)
+    U = ge_to_spectral_matrix(V, optimize_alpha)
     A = gene_normalization(A)
     D = gradient_descent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu, max_evals=iterNum,
                                             verbosity=verbosity)
@@ -569,7 +514,7 @@ def filter_linear_genes_line(A: np.ndarray, regu: float=0.1, iterNum: int=500, v
 
 
 def filter_non_cyclic_genes_line(A: np.ndarray, regu: float = 0.1, iterNum: int = 500,
-                                 verbosity: int = 25) -> np.ndarray:
+                                 verbosity: int = 25, optimize_alpha: bool=True) -> np.ndarray:
     """
     Filter out non-cyclic genes from the gene expression matrix.
 
@@ -583,6 +528,8 @@ def filter_non_cyclic_genes_line(A: np.ndarray, regu: float = 0.1, iterNum: int 
         Number of iterations, by default 500.
     verbosity : int, optional
         Verbosity level, by default 25.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -592,7 +539,7 @@ def filter_non_cyclic_genes_line(A: np.ndarray, regu: float = 0.1, iterNum: int 
     A = np.array(A).astype('float64')
     V = cell_normalization(A)
     p = V.shape[1]
-    U = ge_to_spectral_matrix(V)
+    U = ge_to_spectral_matrix(V, optimize_alpha)
     A = gene_normalization(A)
     D = gradient_descent_filter_matrix_line(A, D=np.identity((p)), U=U.T, regu=regu, max_evals=iterNum,
                                             verbosity=verbosity)
@@ -650,9 +597,6 @@ def gradient_ascent_filter_matrix(A: np.ndarray, D: np.ndarray, U: np.ndarray, a
         j += 1
     return D
 
-
-# def loss_filter_genes(A,U,D,regu):
-#    return np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu*np.linalg.norm(D,1)
 
 @jit(nopython=True, parallel=True)
 def loss_filter_genes(ATU, D, regu):
@@ -734,16 +678,6 @@ def function_and_gradient_filter_matrix(A, D, U, alpha):
     functionValue = (np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - (alpha * np.sum(np.abs(D))))
     gradient = ((2 * ((((A.T).dot(U)).dot(U.T)).dot(A)).dot(D)) - (alpha * np.sign(D)))
     return gradient, functionValue
-
-
-@jit(nopython=True, parallel=True)
-def function_and_gradient_fixed_filter(A, D, U, regu):
-    t_0 = np.linalg.norm((A).dot(D), 'fro')
-    functionValue = np.trace((((((U.T).dot(A)).dot(D)).dot(D.T)).dot(A.T)).dot(U)) - regu * t_0
-    gradient = (2 * ((((A.T).dot(U)).dot(U.T)).dot(A)).dot(D)) - regu * np.sign(
-        D)
-
-    return functionValue, gradient
 
 
 @jit(nopython=True, parallel=True)
@@ -840,26 +774,7 @@ def calculate_roc_auc(y_target, y_true):
     return roc_auc_score(y_true, y_target)
 
 
-def filter_full(A, regu=0.1, iterNum=300):
-    """
-    This function filters out the reconstructed cyclic signal from gene expressio matrix by applying stochastic gradient ascent method.
-
-    Parameters:
-    A (numpy.ndarray): The full gene expression matrix.
-    regu (float, optional): The regularization parameter. Default is 0.1.
-    iterNum (int, optional): The number of iterations for the gradient ascent. Default is 300.
-
-    Returns:
-    numpy.ndarray: Filtering matrix.
-    """
-    A = np.array(A).astype('float64')
-    A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
-    F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum)
-    return F
-
-
-def enhancement_cyclic(A, regu=0.1, iterNum=300, verbosity=25):
+def enhancement_cyclic(A, regu=0.1, iterNum=300, verbosity=25, optimize_alpha=True):
     """
     The function enhancement_cyclic enhances the cyclic signal by applying stochastic gradient ascent method.
     Parameters:
@@ -867,13 +782,15 @@ def enhancement_cyclic(A, regu=0.1, iterNum=300, verbosity=25):
     regu (float, optional): The regularization coefficient. Default is 0.1.
     iterNum (int, optional): The number of iterations for the gradient ascent. Default is 300.
     verbosity (int, optional): The verbosity level. Default is 25.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns:
     numpy.ndarray: Enhancement matrix.
     """
     A = np.array(A, dtype='float64')
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A , optimize_alpha)
     F = stochastic_gradient_ascent_full(A, F=np.ones(A.shape), V=V.T, regu=regu, iterNum=iterNum, verbosity=verbosity)
     return F
 
@@ -889,6 +806,8 @@ def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7, optimi
     error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
     optimize_alpha (bool, optional): Whether to optimize the regularization parameter. Default is True.
     line_search (bool, optional): Whether to use line search. Default is True.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns:
     numpy.ndarray: Filtering matrix.
@@ -905,7 +824,7 @@ def filtering_cyclic(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7, optimi
     return F
 
 
-def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7):
+def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7, optimize_alpha=True):
     """
     The function filtering_cyclic_boosted filters the cyclic signal by applying gradient descent method with boost.
     Parameters:
@@ -914,37 +833,19 @@ def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7
     iterNum (int, optional): The number of iterations for the gradient descent. Default is 300.
     verbosity (int, optional): The verbosity level. Default is 25.
     error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns:
     numpy.ndarray: Filtering matrix.
     """
     A = np.array(A, dtype='float64')
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A, optimize_alpha)
     print("starting filtering")
     A = gradient_descent_full_line_boosted(A, V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity, error=error)
     return A
 
-
-def filtering_cyclic_boosted(A, regu=0.1, iterNum=300, verbosity=25, error=10e-7):
-    """
-    The function filtering_cyclic_boosted filters the cyclic signal by applying gradient descent method with boost.
-    Parameters:
-    A (numpy.ndarray): The gene expression matrix reordered according to cyclic ordering.
-    regu (float, optional): The regularization coefficient. Default is 0.1.
-    iterNum (int, optional): The number of iterations for the gradient descent. Default is 300.
-    verbosity (int, optional): The verbosity level. Default is 25.
-    error (float, optional): The stopping criteria for the gradient descent. Default is 10e-7.
-
-    Returns:
-    numpy.ndarray: The filtering matrix.
-    """
-    A = np.array(A, dtype='float64')
-    A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
-    print("starting filtering")
-    A = gradient_descent_full_line_boosted(A, V=V.T, regu=regu, max_evals=iterNum, verbosity=verbosity, error=error)
-    return A
 
 
 @jit(nopython=True, parallel=True)
@@ -1604,7 +1505,7 @@ def BBS(E: np.ndarray, iterNum: int = 1000, early_exit: int = 15) -> np.ndarray:
     return E
 
 
-def reorder_indicator(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
+def reorder_indicator(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1, optimize_alpha=True):
     """
     Cyclic reorder rows of a gene expression matrix using stochastic gradient ascent. With optional usage of prior knowledge.
 
@@ -1622,6 +1523,8 @@ def reorder_indicator(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
         Momentum parameter. Default is 0.
     lr : float, optional
         Learning rate. Default is 0.1.
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -1631,7 +1534,7 @@ def reorder_indicator(A, IN, iterNum=300, batch_size=20, gamma=0, lr=0.1):
     A = np.array(A).astype('float64')
     A = cell_normalization(A)
     n = A.shape[0]
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A, optimize_alpha)
     E = np.ones((n, n)) / n
     E = E * IN
     E = BBS(E)
@@ -1787,7 +1690,7 @@ def filter_genes_by_proj(A: np.ndarray, V: np.ndarray, n_genes: int = None, perc
     D[x,x]=1
     return D
 
-def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent_genes: float = None) -> np.ndarray:
+def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent_genes: float = None, optimize_alpha: bool=True) -> np.ndarray:
     """
     Filters non cyclic genes from a matrix A.
     If n_genes is not provided, the function will select the top half of the genes by default.
@@ -1801,6 +1704,8 @@ def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent
         The number of genes to select, by default None
     percent_genes : float, optional
         The percent of genes to select, by default None
+    optimize_alpha: bool
+        Find the alpha value using optimization problem or by using the close formula (use 'False' for boost the runtime)
 
     Returns
     -------
@@ -1810,7 +1715,7 @@ def filter_non_cyclic_genes_by_proj(A: np.ndarray,  n_genes: int = None, percent
     """
     A = np.array(A).astype('float64')
     A = cell_normalization(A)
-    V = ge_to_spectral_matrix(A)
+    V = ge_to_spectral_matrix(A, optimize_alpha)
     A = gene_normalization(A)
     D =  filter_genes_by_proj(A=A, V=V.T, n_genes=n_genes, percent_genes=percent_genes)
     return D
@@ -1905,31 +1810,3 @@ def enhance_general_covariance(A, cov, regu=0, epsilon=0.1, iterNum=100, regu_no
     B = normalize(B, axis=1, norm='l2')
     F = stochastic_gradient_ascent_full(B, np.ones(B.shape).astype(float), V=V, regu=regu, epsilon=epsilon, iterNum=iterNum)
     return F
-
-def gene_inference_general_covariance(A, cov, regu=0.5, iterNum=100, lr=0.1):
-    """
-    Infer the genes which are non-smooth over given covariance.
-    Parameters
-    ----------
-    A : numpy array
-        The gene expression matrix.
-    cov : numpy array
-        The theoretical covariance matrix.
-    regu : float, optional
-        Regularization coefficient. Default is 0.5.
-    iterNum : int, optional
-        Number of iterations. Default is 100.
-    lr : float, optional
-        Learning rate. Default is 0.1.
-    Returns
-    -------
-    numpy array
-        The filtering matrix.
-    """
-    A = np.array(A).astype('float64')
-    V = np.array(get_theoretic_eigen(cov)).astype(float)
-    A = gene_normalization(A)
-    p = A.shape[1]
-    D = gradient_ascent_filter_matrix(A, D=np.identity((p)) / 2,  U=V, ascent=-1, regu=regu, lr=lr, iterNum=iterNum)
-    return D
-
