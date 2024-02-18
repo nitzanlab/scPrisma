@@ -48,6 +48,18 @@ conda activate scprisma_gpu
 pip install .[gpu]
 pytest tests/gpu
 ```
+### To cite:
+```
+@article{karin2023scprisma,
+  title={scPrisma infers, filters and enhances topological signals in single-cell data using spectral template matching},
+  author={Karin, Jonathan and Bornfeld, Yonathan and Nitzan, Mor},
+  journal={Nature Biotechnology},
+  pages={1--10},
+  year={2023},
+  publisher={Nature Publishing Group US New York}
+}
+```
+```
 
 <!-- CONTACT -->
 ## Contact
