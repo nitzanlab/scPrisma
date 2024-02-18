@@ -59,7 +59,7 @@ pytest tests/gpu
   publisher={Nature Publishing Group US New York}
 }
 ```
-```
+
 
 <!-- CONTACT -->
 ## Contact
