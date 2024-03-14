@@ -51,7 +51,7 @@ pytest tests/gpu
 ### To cite:
 ```
 @article{karin2023scprisma,
-  title={scPrisma infers, filters and enhances topological signals in single-cell data using spectral template matching},
+  title={sc{P}risma infers, filters and enhances topological signals in single-cell data using spectral template matching},
   author={Karin, Jonathan and Bornfeld, Yonathan and Nitzan, Mor},
   journal={Nature Biotechnology},
   pages={1--10},
