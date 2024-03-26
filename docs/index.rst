@@ -70,7 +70,7 @@ This can be done in few ways:
 
 2. Using full prior knowledge. Use the function ``sort_data_crit`` which sorts the according to an observation of the field that is inserted as 'crit', in the order of 'crit_list' (using scanpy AnnData). In the example, the observation is 'ZT' which contains the values: '0','6','12','18'. After the sorting, the cells with the values '0' would be the first in the expression matrix, than '6','12' and '18'::
 
-      scPrisma.algorithms_torch.sort_data_crit(adata, crit='ZT',crit_list=['0','6','12','18'])
+      adata = scPrisma.algorithms_torch.sort_data_crit(adata, crit='ZT',crit_list=['0','6','12','18'])
 
 
 3. Using partial prior knowledge- discrete labels restricting the optimization parameter (E) to a specific subset of doubly stochastic matrices by creating an indicator matrix. After each gradient ascent step, the optimization parameter is multiplied by this indicator matrix. An example is available in the following  
