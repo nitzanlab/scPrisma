@@ -12,7 +12,7 @@ For documentation please refer to [scPrisma documentation](https://scprisma.read
 
 <!-- Reproducibility -->
 ## Tutorials
-<h4> For tutorials, please refer to:<br /> [Tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials)</h4>
+For tutorials, please refer to:[Tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials)
 
 <!-- Reproducibility -->
 ## Reproducibility
