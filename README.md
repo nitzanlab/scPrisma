@@ -11,6 +11,10 @@ scPrisma is a spectral analysis method, for pseudotime reconstruction, informati
 For documentation please refer to [scPrisma documentation](https://scprisma.readthedocs.io/en/latest/).
 
 <!-- Reproducibility -->
+## Tutorials
+<h4> For tutorials, please refer to:<br /> [Tutorials](https://github.com/nitzanlab/scPrisma/tree/master/tutorials)</h4>
+
+<!-- Reproducibility -->
 ## Reproducibility
 <h4> For reproducibility of scPrisma manuscript, please refer to:<br /> https://github.com/nitzanlab/scPrisma_notebooks</h4>
 
